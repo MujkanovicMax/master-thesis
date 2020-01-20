@@ -1,8 +1,0 @@
-data_files_path /project/meteo/work/Mujkanovic.Max/libRadtran/data
-atmosphere_file ./afglus.dat
-source solar /project/meteo/work/Mujkanovic.Max/libRadtran/data/solar_flux/atlas_plus_modtran
-albedo 0.2
-wavelength 550
-umu .5
-phi 0
-verbose
