@@ -5,7 +5,7 @@ set -eu -o pipefail
 LIBRAD=$WORK/libRadtran
 WORKDIR=$(pwd)
 CLOUDDIR=$WORK/clouds
-
+ATM=$WORKDIR/stdatm/afglus.dat
 UMUS=".1 .5 .9 1"
 PHIS="0 180"
 
@@ -15,11 +15,11 @@ function gen_cld {
 	NY=$3
 	DX=$4
 	DY=$5
-	NLAY=$6
-	CLDX=$7
-	CLDY=$8
-	CLDZ=$9
-	ZLEV=$( tac stdatm/afglus.dat | awk -F " " '{print $1}' | head  -n -2 | tr  "\n" " " | tac )
+	CLDX=$6
+	CLDY=$7
+	CLDZ=$8
+	ZLEV=$( tac $ATM | awk -F " " '{print $1}' | head  -n -2 | tr  "\n" " " )
+	NLAY=$( cat $ATM | tail -n +4  | wc -l )
 
 	cat > $FNAME << EOF
 $NX $NY $NLAY 3
@@ -42,7 +42,7 @@ done
 }
 
 
-get_cld wc3D.dat 5 5  
+gen_cld wc3D.dat 6 6 1 1 "3 4" "3 4" "10 11"  
 
 for umu in ${UMUS}
 do
