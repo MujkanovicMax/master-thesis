@@ -23,6 +23,9 @@ for k in $(seq $NLAY)
 do
         echo 1 1 $k 1e-30 10 >> $FNAME
 done
+echo $CLDX
+echo $CLDY
+echo $CLDZ
 for i in $CLDX
 do
 for j in $CLDY
@@ -35,7 +38,8 @@ done
 done
 }
 
-gen_cld  $1 $2 $3 $4 $5 $6 $7 $8 $9
+
+gen_cld  "$1" "$2" "$3" "$4" "$5" "$6" "$7" "$8" "$9"
 
 #example call
 #gen_cld wc3D.dat 6 6 1 1 "3 4" "3 4" "10 11"

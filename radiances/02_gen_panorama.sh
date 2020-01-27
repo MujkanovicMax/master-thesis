@@ -14,13 +14,14 @@ mc_sensorposition=${10}
 mc_sample_grid=${11}
 mc_backward=${12}
 
+
 for umu in ${UMUS}
 do
 for phi in ${PHIS}
 do
-    JOBDIR=job_${umu}_${phi}
+    JOBDIR=job_panorama_${umu}_${phi}
     if [ ! -e $JOBDIR ]; then mkdir $JOBDIR; fi
-    cp $LIBRAD/data/atmmod/afglus.dat $JOBDIR/
+    cp $ATM $JOBDIR/
     cat > $JOBDIR/uvspec_panorama.inp << EOFJOB
 data_files_path ${LIBRAD}/data
 atmosphere_file ${ATM}
@@ -38,7 +39,11 @@ verbose
 EOFJOB
 
 cd $JOBDIR
-$LIBRAD/bin/uvspec -f uvspec_panorama.inp > out.data
+if [ ! -e $FNAME ]; then  ln -s ../$FNAME; fi 
+#if [ ! -e out.data ]; then
+$LIBRAD/bin/uvspec -f uvspec_panorama.inp > out_panorama.data
+#fi
+bash 04_convertToNetCDF.sh ./
 cd $WORKDIR
 
 

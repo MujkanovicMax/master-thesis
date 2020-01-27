@@ -11,13 +11,14 @@ WAVELENGTH=$7
 SAMPLEGRID=$8
 FNAME=$9
 
+
 for umu in ${UMUS}
 do
 for phi in ${PHIS}
 do
     JOBDIR=job_${umu}_${phi}
     if [ ! -e $JOBDIR ]; then mkdir $JOBDIR; fi
-    cp $LIBRAD/data/atmmod/afglus.dat $JOBDIR/
+    cp $ATM $JOBDIR/
     cat > $JOBDIR/uvspec.inp << EOFJOB
 data_files_path ${LIBRAD}/data
 atmosphere_file ${ATM}
@@ -26,15 +27,19 @@ albedo $ALBEDO
 wavelength $WAVELENGTH
 umu $umu
 phi $phi
+rte_solver mystic
 wc_file 3D $FNAME
+wc_properties mie interpolate
+mc_vroom on
 mc_sample_grid $SAMPLEGRID 
 verbose
 EOFJOB
 
 cd $JOBDIR
+if [ ! -e $FNAME ]; then  ln -s ../$FNAME; fi
 $LIBRAD/bin/uvspec -f uvspec.inp > out.data
+bash 04_convertToNetCDF.sh ./
 cd $WORKDIR
-
 
 done
 done
