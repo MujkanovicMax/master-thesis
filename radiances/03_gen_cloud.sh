@@ -12,8 +12,8 @@ function gen_cld {
         CLDX=$7
         CLDY=$8
         CLDZ=$9
-        ZLEV=$( tac $ATM | awk -F " " '{print $1}' | head  -n -2 | tr  "\n" " " )
-        NLAY=$( cat $ATM | tail -n +4  | wc -l )
+        ZLEV=${10}
+        NLAY=${11}
 
         cat > $FNAME << EOF
 $NX $NY $NLAY 3

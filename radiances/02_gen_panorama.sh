@@ -30,11 +30,16 @@ albedo $ALBEDO
 wavelength $WAVELENGTH
 umu $umu
 phi $phi
+zout all_levels
+rte_solver mystic
+mc_photons 100
+mc_minphotons 100
 wc_file 3D $FNAME
 mc_panorama_view $mc_panorama_view 
 mc_sensorposition $mc_sensorposition
 mc_sample_grid $mc_sample_grid 
 mc_backward $mc_backward 
+mc_vroom on
 verbose
 EOFJOB
 
@@ -43,6 +48,7 @@ if [ ! -e $FNAME ]; then  ln -s ../$FNAME; fi
 #if [ ! -e out.data ]; then
 $LIBRAD/bin/uvspec -f uvspec_panorama.inp > out_panorama.data
 #fi
+if [ ! -e 04_convertToNetCDF.sh ]; then ln -s ../04_convertToNetCDF.sh; fi
 bash 04_convertToNetCDF.sh ./
 cd $WORKDIR
 
