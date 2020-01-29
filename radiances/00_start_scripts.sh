@@ -8,9 +8,12 @@ ATM=$WORKDIR/stdatm/afglus.dat
 
 #angles
 NUMU=16                              #NUMU defines number of sample angles chosen from gaussian quadrature. Disort uses 16 streams per default (for irradiance) 
-bash 05_gauss_nodes.sh "$NUMU"             
+bash 05_gauss_nodes.sh "$NUMU" numus.txt "-1" "1" 
 UMUS=$( head -n +1 gauss_nodes.txt )    #when not using gaussian quadrature angles use something like this: UMUS="-0.861136" #-0.339981 0.339981 0.861136   
-PHIS=$( seq -s " " 0 36 360 )
+NPHIS=16
+bash 05_gauss_nodes.sh "$NPHIS" nphis.txt "0" "6.283185307"
+bash convertToAngle.sh nphis.txt
+PHIS=$( head cangles.txt )
 
 #layers/levels
 ZLEV=$( tac $ATM | awk -F " " '{print $1}' | head  -n -2 | tr  "\n" " " )

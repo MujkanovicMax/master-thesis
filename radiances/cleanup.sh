@@ -7,10 +7,8 @@ WORKDIR=$(pwd)
 ATM=$WORKDIR/stdatm/afglus.dat
 
 #angles
-NUMU=16                              #NUMU defines number of sample angles chosen from gaussian quadrature. Disort uses 16 streams per default (for irradiance) 
-bash 05_gauss_nodes.sh "$NUMU"
-UMUS=$( head -n +1 gauss_nodes.txt )    #when not using gaussian quadrature angles use something like this: UMUS="-0.861136" #-0.339981 0.339981 0.861136   
-PHIS=$( seq 0 36 360 )
+UMUS=$( sed -n "1 p" input_params.txt )       
+PHIS=$( sed -n "2 p" input_params.txt )
 
 for umu in ${UMUS}
 do

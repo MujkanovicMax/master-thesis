@@ -38,7 +38,7 @@ EOFJOB
 
 cd $JOBDIR
 if [ ! -e $FNAME ]; then  ln -s ../$FNAME; fi
-$LIBRAD/bin/uvspec -f uvspec.inp > out.data
+$LIBRAD/bin/uvspec -f uvspec.inp 2>&1 > out.data
 if [ ! -e 04_convertToNetCDF.sh ]; then ln -s ../04_convertToNetCDF.sh; fi
 bash 04_convertToNetCDF.sh ./
 cd $WORKDIR
