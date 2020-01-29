@@ -27,11 +27,11 @@ albedo $ALBEDO
 wavelength $WAVELENGTH
 umu $umu
 phi $phi
-zout all_levels
+zout -999
 rte_solver mystic
-wc_file 3D $FNAME
-wc_properties hu
-mc_vroom on
+#wc_file 3D $FNAME
+#wc_properties hu
+#mc_vroom on
 mc_sample_grid $SAMPLEGRID 
 verbose
 EOFJOB

@@ -32,7 +32,7 @@ for j in $CLDY
 do
 for k in $CLDZ
 do
-        echo $i $j $k 0.1 10 >> $FNAME
+        echo $i $j $k 0.0 10 >> $FNAME
 done
 done
 done
