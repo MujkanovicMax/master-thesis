@@ -15,9 +15,12 @@ do
 for phi in ${PHIS}
 do
     JOBDIR=job_${umu}_${phi}
-    if [ -e $JOBDIR/mc.rad.spc.nc ]; then rm $JOBDIR/mc.rad.spc.nc; fi
+    echo $JOBDIR
+    if [ -e $JOBDIR/mc.flx.spc.nc ]; then rm $JOBDIR/mc.flx.spc.nc; fi
     cd $JOBDIR
-    bash 04_convertToNetCDF.sh
+    if [ ! -e convert_flx2nc.sh ]; then ln -s ../convert_flx2nc.sh; fi
+    bash convert_flx2nc.sh
+    rm convert_flx2nc.sh
     cd $WORKDIR
 done
 done
