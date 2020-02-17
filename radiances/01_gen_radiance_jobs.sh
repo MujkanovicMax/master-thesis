@@ -27,11 +27,11 @@ albedo $ALBEDO
 wavelength $WAVELENGTH
 umu $umu
 phi $phi
-zout -999 $ZLEV
+zout -999
 rte_solver mystic
-wc_file 3D $FNAME
-wc_properties hu
-mc_vroom on
+#wc_file 3D $FNAME
+#wc_properties hu
+#mc_vroom on
 mc_std
 mc_sample_grid $SAMPLEGRID 
 verbose
@@ -39,7 +39,7 @@ EOFJOB
 
 cd $JOBDIR
 if [ ! -e $FNAME ]; then  ln -s ../$FNAME; fi
-$LIBRAD/bin/uvspec -f uvspec.inp 2>&1 > out.data
+$LIBRAD/bin/uvspec -f uvspec.inp > out.data
 if [ ! -e 04_convertToNetCDF.sh ]; then ln -s ../04_convertToNetCDF.sh; fi
 bash 04_convertToNetCDF.sh 
 if [ ! -e convert_flx2nc.sh ]; then ln -s ../convert_flx2nc.sh; fi

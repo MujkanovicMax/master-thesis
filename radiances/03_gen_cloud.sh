@@ -14,6 +14,8 @@ function gen_cld {
         CLDZ=$9
         ZLEV=${10}
         NLAY=${11}
+	CR=${12}
+	LWC=${13}
 
         cat > $FNAME << EOF
 $NX $NY $NLAY 3
@@ -32,14 +34,14 @@ for j in $CLDY
 do
 for k in $CLDZ
 do
-        echo $i $j $k 0.0 10 >> $FNAME
+        echo $i $j $k $LWC $CR >> $FNAME
 done
 done
 done
 }
 
 
-gen_cld  "$1" "$2" "$3" "$4" "$5" "$6" "$7" "$8" "$9" "${10}" "${11}"
+gen_cld  "$1" "$2" "$3" "$4" "$5" "$6" "$7" "$8" "$9" "${10}" "${11}" "${12}" "${13}"
 
 #example call
 #gen_cld wc3D.dat 6 6 1 1 "3 4" "3 4" "10 11"

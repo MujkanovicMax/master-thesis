@@ -18,6 +18,25 @@ def int_netcdf(x,y,wx,wy,fname,var):
 
     return sum_arr
 
+
+def calc_Es(UMUS,PHIS,wumu,wphi,filename,var):
+
+
+    UMUS_up = UMUS[np.where(UMUS.astype(float) >= 0)[0]]
+    UMUS_down = UMUS[np.where(UMUS.astype(float) <= 0)[0]]
+    wumu_down = wumu[0:len(UMUS_down)]
+    wumu_up = wumu[len(UMUS_down):]
+
+
+    Eup = int_netcdf(UMUS_up,PHIS,wumu_up,wphi,filename,var)
+
+    Edown = int_netcdf(UMUS_down,PHIS,wumu_down,wphi,filename,var)
+
+    Eavg = calc_avg_E(UMUS,PHIS)
+
+    return Eup, Edown, Eavg
+
+
 def calc_avg_E(x,y):
 
     sum_arr = netCDF4.Dataset("job_" + x[0] + "_" + y[0] + "/"+ "mc.flx.spc.nc", "a")
@@ -40,30 +59,11 @@ def calc_avg_E(x,y):
     
     return sum_arr
 
-   
-    
-        
-
 
 UMUS = np.loadtxt("input_params.txt",dtype=str, max_rows=1)
 PHIS = np.loadtxt("input_params.txt",dtype=str,skiprows=1, max_rows=1)
 wumu = np.loadtxt("numus.txt", skiprows=1, max_rows=1)
 wphi = np.loadtxt("nphis.txt", skiprows=1, max_rows=1)
 
-
-UMUS_up = UMUS[np.where(UMUS.astype(float) >= 0)[0]]
-UMUS_down = UMUS[np.where(UMUS.astype(float) <= 0)[0]]
-wumu_down = wumu[0:len(UMUS_down)]
-wumu_up = wumu[len(UMUS_down):]
-
-
-Eup = int_netcdf(UMUS_up,PHIS,wumu_up,wphi,"mc.rad.spc.nc","radiance")
-
-Edown = int_netcdf(UMUS_down,PHIS,wumu_down,wphi,"mc.rad.spc.nc","radiance")
-
-
-
-
-
-
+Eup, Edown, Eavg = calc_Es(UMUS,PHIS,wumu,wphi,"mc.rad.spc.nc","radiance")
 
