@@ -27,11 +27,15 @@ albedo $ALBEDO
 wavelength $WAVELENGTH
 umu $umu
 phi $phi
-zout -999
+sza 45
+zout -999 1
 rte_solver mystic
-#wc_file 3D $FNAME
-#wc_properties hu
+wc_file 3D $FNAME
+no_scattering mol
+no_absorption mol
+wc_properties hu
 #mc_vroom on
+mc_photons 1
 mc_std
 mc_sample_grid $SAMPLEGRID 
 verbose

@@ -15,32 +15,37 @@ mc_sample_grid=${11}
 mc_backward=${12}
 
 
-for umu in ${UMUS}
-do
-for phi in ${PHIS}
-do
-    JOBDIR=job_panorama_${umu}_${phi}
-    if [ ! -e $JOBDIR ]; then mkdir $JOBDIR; fi
-    cp $ATM $JOBDIR/
-    cat > $JOBDIR/uvspec_panorama.inp << EOFJOB
+
+JOBDIR=job_panorama
+if [ ! -e $JOBDIR ]; then mkdir $JOBDIR; fi
+cp $ATM $JOBDIR/
+cat > $JOBDIR/uvspec_panorama.inp << EOFJOB
 data_files_path ${LIBRAD}/data
 atmosphere_file ${ATM}
 source solar ${LIBRAD}/data/solar_flux/atlas_plus_modtran
 albedo $ALBEDO
+sza 45
 wavelength $WAVELENGTH
-umu $umu
-phi $phi
-zout all_levels
+mol_abs_param reptran coarse
+mc_panorama_alignment mu
+umu 0
+phi 0
+phi0 270
 rte_solver mystic
-mc_photons 100
-mc_minphotons 100
+mc_photons 1000
+mc_minphotons 1
+wc_properties hu
 wc_file 3D $FNAME
 mc_panorama_view $mc_panorama_view 
 mc_sensorposition $mc_sensorposition
 mc_sample_grid $mc_sample_grid 
 mc_backward $mc_backward 
+mc_surface_reflectalways
+#mc_maxscatters 1
 mc_vroom on
-verbose
+no_scattering mol
+no_absorption mol
+
 EOFJOB
 
 cd $JOBDIR
@@ -53,8 +58,8 @@ bash 04_convertToNetCDF.sh ./
 cd $WORKDIR
 
 
-done
-done
+
+
 
 
 
