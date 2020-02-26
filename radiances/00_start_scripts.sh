@@ -19,6 +19,9 @@ do
 	bash 05_gauss_nodes.sh "$NPHIS" nphis.txt "0" "6.283185307"
 	bash convertToAngle.sh nphis.txt
 	PHIS=$( head cangles.txt )
+        SZA=45
+	PHI0=270
+
 
 	#layers/levels
 	ZLEV=$( tac $ATM | awk -F " " '{print $1}' | head  -n -2 | tr  "\n" " " )
@@ -48,7 +51,7 @@ do
 	mc_sensorposition="1500 10 2000"          #"x y z"; sensorpos in m
 	mc_sample_grid="90 1"              #"nphi ntheta"; how many samples are taken in each direction; (phi1-phi1)/nphi = camera resolution in phi direction 
 	mc_backward="0 0 89 0"             #"phi_start theta_start phi_end theta_end"; ? should match sample grid, e.g. 90 90 -> 0 0 89 89
-
+        PHOTONS=1000
 
 
 
@@ -56,16 +59,15 @@ do
 	#script execution
 	bash 03_gen_cloud.sh "$FNAME" "$ATM" "$NX" "$NY" "$DX" "$DY" "$CLDX" "$CLDY" "$CLDZ" "$ZLEV" "$NLAY" "$CR" "$LWC"
 	echo Cloud gernerated
-	#bash 01_gen_radiance_jobs.sh "$UMUS" "$PHIS" "$LIBRAD" "$WORKDIR" "$ATM" "$ALBEDO" "$WAVELENGTH" "$SAMPLEGRID" "$FNAME" "$ZLEVno0"
-	#echo Radiances generated
-	bash 02_gen_panorama.sh "$UMUS" "$PHIS" "$LIBRAD" "$WORKDIR" "$ATM" "$ALBEDO" "$WAVELENGTH" "$FNAME" "$mc_panorama_view" "$mc_sensorposition" "$mc_sample_grid" "$mc_backward"
-	echo Panorama generated
+	bash 01_gen_radiance_jobs.sh "$UMUS" "$PHIS" "$SZA" "$PHI0" "$LIBRAD" "$WORKDIR" "$ATM" "$ALBEDO" "$WAVELENGTH" "$SAMPLEGRID" "$FNAME" "$ZLEVno0"
+	echo Radiances generated
+	#bash 02_gen_panorama.sh "$UMUS" "$PHIS" "$SZA" "$PHI0" "$PHOTONS" "$LIBRAD" "$WORKDIR" "$ATM" "$ALBEDO" "$WAVELENGTH" "$FNAME" "$mc_panorama_view" "$mc_sensorposition" "$mc_sample_grid" "$mc_backward"
+	#echo Panorama generated
 
 	#output used parameters
-	bash op_parameters.sh "$UMUS" "$PHIS" "$ZLEV" "$NLAY" "$LIBRAD" "$WORKDIR" "$ATM"
+	bash op_parameters.sh "$UMUS" "$PHIS" "$SZA" "$PHI0" "$ZLEV" "$NLAY" "$SAMPLEGRID" "$LIBRAD" "$WORKDIR" "$ATM"
 	
-	
+
 
 done
-
 

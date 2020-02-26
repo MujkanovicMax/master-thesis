@@ -3,14 +3,16 @@ set -eu -o pipefail
 
 UMUS=$1
 PHIS=$2
-LIBRAD=$3
-WORKDIR=$4
-ATM=$5
-ALBEDO=$6
-WAVELENGTH=$7
-SAMPLEGRID=$8
-FNAME=$9
-ZLEV=${10}
+SZA=$3
+PHI0=$4
+LIBRAD=$5
+WORKDIR=$6
+ATM=$7
+ALBEDO=$8
+WAVELENGTH=$9
+SAMPLEGRID=${10}
+FNAME=${11}
+ZLEV=${12}
 
 for umu in ${UMUS}
 do
@@ -27,15 +29,16 @@ albedo $ALBEDO
 wavelength $WAVELENGTH
 umu $umu
 phi $phi
-sza 45
+sza $SZA
+phi0 $PHI0
 zout -999 1
 rte_solver mystic
 wc_file 3D $FNAME
 no_scattering mol
 no_absorption mol
 wc_properties hu
-#mc_vroom on
-mc_photons 1
+mc_vroom on
+mc_photons 10000
 mc_std
 mc_sample_grid $SAMPLEGRID 
 verbose
