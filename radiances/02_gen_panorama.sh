@@ -22,7 +22,7 @@ mc_backward=${15}
 JOBDIR=job_panorama
 if [ ! -e $JOBDIR ]; then mkdir $JOBDIR; fi
 cp $ATM $JOBDIR/
-cat > $R/uvspec_panorama.inp << EOFJOB
+cat > $JOBDIR/uvspec_panorama.inp << EOFJOB 
 data_files_path ${LIBRAD}/data
 atmosphere_file ${ATM}
 source solar ${LIBRAD}/data/solar_flux/atlas_plus_modtran

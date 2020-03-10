@@ -1,5 +1,6 @@
 import numpy as np
 import netCDF4 as nd
+import matplotlib.pyplot as plt
 
 def get_sample_points(origin, dir, ns=10):
 
@@ -33,13 +34,14 @@ def get_boxindex(p,grid):
 
 
 
-def get_edir(p,grid,fpath="job_-0.577350_283.923047/mc.flx.spc.nc"):
+def get_e(p,grid,fpath="job_-0.577350_283.923047/mc.flx.spc.nc"):
 
     
     edirs = nd.Dataset(fpath,'r')
     Edir = np.zeros(p.shape[1])
-
-
+    Edown = np.zeros(p.shape[1])
+    Eup = np.zeros(p.shape[1])
+    
     for I in range(p.shape[1]):
         
         
@@ -47,6 +49,8 @@ def get_edir(p,grid,fpath="job_-0.577350_283.923047/mc.flx.spc.nc"):
         print(j,i,k)
 
         Edir[I] = edirs["Edir"][j,i,k,:]
+        Edown[I] = edirs["Edown"][j,i,k,:]
+        Eup[I] = edirs["Eup"][j,i,k,:]
 
 
 
@@ -54,7 +58,30 @@ def get_edir(p,grid,fpath="job_-0.577350_283.923047/mc.flx.spc.nc"):
         
     edirs.close()
 
-    return Edir
+    return Edir,Edown,Eup
+
+def get_rad(p,grid):
+
+    data = np.loadtxt("input_params.txt",dtype=str,max_rows=2)
+    umus = data[0]
+    phis = data[1]
+    L = np.zeros((umus.shape[0]*phis.shape[0],p.shape[1]))
+
+    for I in range(p.shape[1]):
+
+        i,j,k = get_boxindex(p[:,I],grid)
+        
+        N = 0
+
+        for l,mu in enumerate(umus):
+            for m,phi in enumerate(phis):
+                
+                rads = nd.Dataset("job_"+mu+"_"+phi+"/mc.rad.spc.nc","r")
+                L[N,I] = rads["radiance"][j,i,k,:]
+                rads.close()
+                N=N+1
+
+    return L,umus.astype(float),phis.astype(float)
 
 
 #input = np.loadtxt("input_params.txt")
@@ -69,7 +96,8 @@ Nz = 3
 dx = 0.1
 dy = 1
 dz = 1
-mu = np.cos(45/180.*np.pi)
+sza=45
+mu = np.cos(sza/180.*np.pi)
 albedo = 0.2
 
 grid = np.array([Nx,Ny,Nz,dx,dy,dz])
@@ -84,11 +112,19 @@ pixelangles = (pixeledges[0:-1] + pixeledges[1:])/2.
 pixelvalues = np.zeros(pixelangles.shape)
 
 pixelground = get_sample_points(camerapos,pixelangles)[-1]
-Edir = get_edir(pixelground,grid)
+Edir,Edown,Eup = get_e(pixelground,grid)
+L,umus,phis = get_rad(pixelground,grid)
+test=np.ravel(umus.reshape((2,1))*phis)
 
-###Edir/mu * albedo *
+Ldown = L[np.where(test<=0)[0],:]
 
 
+pixelvalues = Edir * albedo / np.pi + np.sum(Ldown*albedo/np.pi*np.array([umus[0],umus[0]]).reshape((2,1)),axis=1)
 
+fig,ax = plt.subplots()
+
+ax.plot(np.arange(pixelvalues.shape[0]),pixelvalues)
+plt.tight_layout()
+plt.show(plt.show())
 
 
