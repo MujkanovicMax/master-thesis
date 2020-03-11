@@ -7,7 +7,7 @@ LIBRAD=$WORK/maproject/libRadtran
 WORKDIR=$(pwd)
 ATM=$WORKDIR/stdatm/afglus.dat
 
-nangles="2"     # 1 2 4 6 8 10 16 32
+nangles="8"     # 1 2 4 6 8 10 16 32
 
 for i in $nangles
 do
@@ -30,11 +30,11 @@ do
 
 	#cloud data
 	FNAME="wc3D.dat"   
-	NX=3              #NX NY define the grid for cloud boxes, e.g. NX=6 NY=6 means a 6x6 grid
+	NX=7              #NX NY define the grid for cloud boxes, e.g. NX=6 NY=6 means a 6x6 grid
 	NY=1
 	DX=1              #DX DY define the grid extent in km
 	DY=1
-	CLDX="2"        #CLDX CLDY define the gridboxes in which to put clouds (like coordinates;gridbox count starts from 1) 
+	CLDX="4"        #CLDX CLDY define the gridboxes in which to put clouds (like coordinates;gridbox count starts from 1) 
 	CLDY="1"
 	CLDZ="1"      #CLDZ layernumber in which to put clouds
 	CR=10
@@ -44,7 +44,7 @@ do
 	#simulation data
 	ALBEDO=0.2
 	WAVELENGTH=500
-	SAMPLEGRID="30 1 0.1 1" #should probably be the same as "NX NY DX DY" ?
+	SAMPLEGRID="70 1 0.1 1" #should probably be the same as "NX NY DX DY" ?
 
 	#camera data
 	mc_panorama_view="-45 45 90 90"   #"phi1 phi2 theta1 theta2"; fov of camera in hor and vert direction; phi=0 -> south; theta=0 -> vertically down 

@@ -17,7 +17,7 @@ def int_netcdf(x,y,wx,wy,fname,var):
             fpath = "job_" + str(m) + "_" + str(p) + "/"+ fname
             arr = netCDF4.Dataset(fpath, "a")
             sum_arr += abs(float(m)) * arr[var][:] * wx[ix] * wy[iy]        #abs erstmal nur damit Edown nicht negativ wird
-            print(ix, iy, p, fpath, sum_arr, m, wx[ix], wy[iy], arr[var][:])
+            #print(ix, iy, p, fpath, sum_arr, m, wx[ix], wy[iy], arr[var][:])
             arr.close()
             I+=1
             #print(str(I),end="\r",flush=True)
@@ -38,9 +38,9 @@ def calc_Es(UMUS,PHIS,wumu,wphi,filename,var):
 
     Edown = int_netcdf(UMUS_down,PHIS,wumu_down,wphi,filename,var)
 
-    Eavg = calc_avg_E(UMUS,PHIS)
+    #Eavg = calc_avg_E(UMUS,PHIS)
 
-    return Eup, Edown, Eavg
+    return Eup, Edown #,Eavg
 
 
 def calc_avg_E(x,y):
@@ -60,7 +60,7 @@ def calc_avg_E(x,y):
             eup +=  arr["Eup"][:]
             arr.close()
             I+=1
-            print(str(I),end="\r",flush=True)
+            #print(str(I),end="\r",flush=True)
 
     edn /= (len(x)*len(y))
     eup /= (len(x)*len(y))
@@ -68,10 +68,10 @@ def calc_avg_E(x,y):
     return {"Edown": edn, "Eup": eup}
 
 
-UMUS = np.loadtxt("input_params.txt",dtype=str, max_rows=1)
-PHIS = np.loadtxt("input_params.txt",dtype=str,skiprows=1, max_rows=1)
-wumu = np.loadtxt("numus.txt", skiprows=1, max_rows=1)
-wphi = np.loadtxt("nphis.txt", skiprows=1, max_rows=1)
-
-Eup, Edown, Eavg = calc_Es(UMUS,PHIS,wumu,wphi,"mc.rad.spc.nc","radiance")
+#UMUS = np.loadtxt("input_params.txt",dtype=str, max_rows=1)
+#PHIS = np.loadtxt("input_params.txt",dtype=str,skiprows=1, max_rows=1)
+#wumu = np.loadtxt("numus.txt", skiprows=1, max_rows=1)
+#wphi = np.loadtxt("nphis.txt", skiprows=1, max_rows=1)
+#
+#Eup, Edown, Eavg = calc_Es(UMUS,PHIS,wumu,wphi,"mc.rad.spc.nc","radiance")
 

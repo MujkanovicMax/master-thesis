@@ -1,8 +1,9 @@
 import numpy as np
 import netCDF4 as nd
 import matplotlib.pyplot as plt
+from calc_irr import *
 
-def get_sample_points(origin, dir, ns=10):
+def get_sample_points(origin, dir , ns=10):
 
     gps = np.zeros((origin.shape[0],dir.shape[0]))
     gps[0] = np.tan(dir/180.*np.pi) * origin[2] + origin[0]
@@ -13,28 +14,42 @@ def get_sample_points(origin, dir, ns=10):
     v = np.zeros((ds.shape[0],origin.shape[0],dir.shape[0]))
 
     v = np.reshape(origin,(1,origin.shape[0],1)) + (gps - np.reshape(origin,(origin.shape[0],1))) * np.reshape(ds,(ds.shape[0],1,1))
-  
+    
     return v
 
 
 def get_boxindex(p,grid):
-    
+   
+    dxi = np.array([grid[3],grid[4],grid[5]])
+    bounds = np.array([grid[0],grid[1],grid[2]])
     index = np.zeros_like(p)
-    for i in range(len(index)):
-        index[i] = p[i]//grid[i+3]
-        print(index[i])
-        if index[i] < 0:
-            index[i]+=grid[i]
-        if index[i] > grid[i]-1:
-            index[i] -= grid[i]
-            print(index[i])
+   
+    try:
+        for i in range(len(index)):
+            index[i] = p[i]//grid[i+3]
+            if index[i] < 0:
+                index[i]+=grid[i]
+            if index[i] > grid[i]-1:
+                index[i] -= grid[i]
+
+    except:
+
+        for i in range(p.shape[0]):
+            for xi in range(3):
+                for k in range(p.shape[2]):
+            
+                    index[i,xi,k] = p[i,xi,k]//dxi[xi]
+                    if index[i,xi,k] < 0:
+                        index[i,xi,k] += bounds[xi]
+                    if index[i,xi,k] > bounds[xi]-1:
+                        index[i,xi,k] -= bounds[xi]
 
 
     return index.astype(int)
 
 
 
-def get_e(p,grid,fpath="job_-0.577350_283.923047/mc.flx.spc.nc"):
+def get_e(p,grid,fpath="job_0.183435_36.600028/mc.flx.spc.nc"):
 
     
     edirs = nd.Dataset(fpath,'r')
@@ -46,7 +61,6 @@ def get_e(p,grid,fpath="job_-0.577350_283.923047/mc.flx.spc.nc"):
         
         
         i,j,k = get_boxindex(p[:,I],grid)
-        print(j,i,k)
 
         Edir[I] = edirs["Edir"][j,i,k,:]
         Edown[I] = edirs["Edown"][j,i,k,:]
@@ -62,45 +76,41 @@ def get_e(p,grid,fpath="job_-0.577350_283.923047/mc.flx.spc.nc"):
 
 def get_rad(p,grid):
 
-    data = np.loadtxt("input_params.txt",dtype=str,max_rows=2)
-    umus = data[0]
-    phis = data[1]
-    L = np.zeros((umus.shape[0]*phis.shape[0],p.shape[1]))
+    Eup = np.zeros(p.shape[1])
+    Edown = np.zeros_like(Eup)
+    Eu,Ed = calc_Es(UMUS,PHIS,wumu,wphi,"mc.rad.spc.nc","radiance")
 
     for I in range(p.shape[1]):
 
         i,j,k = get_boxindex(p[:,I],grid)
-        
-        N = 0
+        Eup[I] = Eu["radiance"][j,i,k,:]
+        Edown[I] = Ed["radiance"][j,i,k,:]
 
-        for l,mu in enumerate(umus):
-            for m,phi in enumerate(phis):
-                
-                rads = nd.Dataset("job_"+mu+"_"+phi+"/mc.rad.spc.nc","r")
-                L[N,I] = rads["radiance"][j,i,k,:]
-                rads.close()
-                N=N+1
-
-    return L,umus.astype(float),phis.astype(float)
+    return Eup,Edown
 
 
-#input = np.loadtxt("input_params.txt")
-#sza = input[2]
-#phi0 = input[3]
-#layers = input[4]
-#samplegrid = input[5]
 
-Nx = 30
-Ny = 1
-Nz = 3
-dx = 0.1
-dy = 1
+
+UMUS = np.loadtxt("input_params.txt",dtype=str, max_rows=1)
+PHIS = np.loadtxt("input_params.txt",dtype=str,skiprows=1, max_rows=1)
+wumu = np.loadtxt("numus.txt", skiprows=1, max_rows=1)
+wphi = np.loadtxt("nphis.txt", skiprows=1, max_rows=1)
+
+
+
+Nx,Ny,dx,dy = np.loadtxt("input_params.txt", skiprows = 6, max_rows=1) 
+Zlev = np.loadtxt("input_params.txt", skiprows = 4, max_rows=1)
+Nz = 2 #Zlev.shape[0]
 dz = 1
-sza=45
+sza = np.loadtxt("input_params.txt", skiprows = 2, max_rows=1)
 mu = np.cos(sza/180.*np.pi)
 albedo = 0.2
 
 grid = np.array([Nx,Ny,Nz,dx,dy,dz])
+
+cloudx = np.array([3,4])
+cloudy = np.array([0])
+cloudz = np.array([0,1])
 
 
 camerapos = np.array([1.5,0.01,2])
@@ -113,18 +123,25 @@ pixelvalues = np.zeros(pixelangles.shape)
 
 pixelground = get_sample_points(camerapos,pixelangles)[-1]
 Edir,Edown,Eup = get_e(pixelground,grid)
-L,umus,phis = get_rad(pixelground,grid)
-test=np.ravel(umus.reshape((2,1))*phis)
+Eu,Ed = get_rad(pixelground,grid)
 
-Ldown = L[np.where(test<=0)[0],:]
+pixelvalues = Edir * albedo / np.pi + Ed*albedo/np.pi 
+palt = Edir *albedo/np.pi + Edown*albedo/np.pi
 
+truth = nd.Dataset("job_panorama/mc.rad.spc.nc" , "r")
 
-pixelvalues = Edir * albedo / np.pi + np.sum(Ldown*albedo/np.pi*np.array([umus[0],umus[0]]).reshape((2,1)),axis=1)
+fig,ax = plt.subplots(3,1)
 
-fig,ax = plt.subplots()
+ax[0].plot(np.arange(pixelvalues.shape[0]),pixelvalues,label="with Edown from radiances")
+ax[1].plot(np.arange(palt.shape[0]),palt,label="with Edown from flx file")
+ax[2].plot(np.arange(truth["radiance"][0,:,0,0].shape[0]),truth["radiance"][0,:,0,0], label="from mystic panorama")
+ax[0].legend()
+ax[1].legend()
+ax[2].legend()
 
-ax.plot(np.arange(pixelvalues.shape[0]),pixelvalues)
 plt.tight_layout()
-plt.show(plt.show())
+plt.show()
+
+
 
 
