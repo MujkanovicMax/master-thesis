@@ -123,24 +123,26 @@ pixelvalues = np.zeros(pixelangles.shape)
 
 pixelground = get_sample_points(camerapos,pixelangles)[-1]
 Edir,Edown,Eup = get_e(pixelground,grid)
-Eu,Ed = get_rad(pixelground,grid)
+#Eu,Ed = get_rad(pixelground,grid)
+#
+#pixelvalues = Edir * albedo / np.pi + Ed*albedo/np.pi 
+#palt = Edir *albedo/np.pi + Edown*albedo/np.pi
+#
+#truth = nd.Dataset("job_panorama/mc.rad.spc.nc" , "r")
 
-pixelvalues = Edir * albedo / np.pi + Ed*albedo/np.pi 
-palt = Edir *albedo/np.pi + Edown*albedo/np.pi
+Eu,Ed = calc_Es(UMUS,PHIS,wumu,wphi,"mc.rad.spc.nc","radiance")
 
-truth = nd.Dataset("job_panorama/mc.rad.spc.nc" , "r")
+#fig,ax = plt.subplots(3,1)
 
-fig,ax = plt.subplots(3,1)
-
-ax[0].plot(np.arange(pixelvalues.shape[0]),pixelvalues,label="with Edown from radiances")
-ax[1].plot(np.arange(palt.shape[0]),palt,label="with Edown from flx file")
-ax[2].plot(np.arange(truth["radiance"][0,:,0,0].shape[0]),truth["radiance"][0,:,0,0], label="from mystic panorama")
-ax[0].legend()
-ax[1].legend()
-ax[2].legend()
-
-plt.tight_layout()
-plt.show()
+#ax[0].plot(np.arange(pixelvalues.shape[0]),pixelvalues,label="with Edown from radiances")
+#ax[1].plot(np.arange(palt.shape[0]),palt,label="with Edown from flx file")
+#ax[2].plot(np.arange(truth["radiance"][0,:,0,0].shape[0]),truth["radiance"][0,:,0,0], label="from mystic panorama")
+#ax[0].legend()
+#ax[1].legend()
+#ax[2].legend()
+#
+#plt.tight_layout()
+#plt.show()
 
 
 

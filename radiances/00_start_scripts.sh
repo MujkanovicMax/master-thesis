@@ -57,12 +57,15 @@ do
 
 
 	#script execution
-	bash 03_gen_cloud.sh "$FNAME" "$ATM" "$NX" "$NY" "$DX" "$DY" "$CLDX" "$CLDY" "$CLDZ" "$ZLEV" "$NLAY" "$CR" "$LWC"
-	echo Cloud gernerated
-	bash 01_gen_radiance_jobs.sh "$UMUS" "$PHIS" "$SZA" "$PHI0" "$LIBRAD" "$WORKDIR" "$ATM" "$ALBEDO" "$WAVELENGTH" "$SAMPLEGRID" "$FNAME" "$ZLEVno0"
-	echo Radiances generated
+	#bash 03_gen_cloud.sh "$FNAME" "$ATM" "$NX" "$NY" "$DX" "$DY" "$CLDX" "$CLDY" "$CLDZ" "$ZLEV" "$NLAY" "$CR" "$LWC"
+	#echo Cloud gernerated
+	#bash 01_gen_radiance_jobs.sh "$UMUS" "$PHIS" "$SZA" "$PHI0" "$LIBRAD" "$WORKDIR" "$ATM" "$ALBEDO" "$WAVELENGTH" "$SAMPLEGRID" "$FNAME" "$ZLEVno0"
+	#echo Radiances generated
 	bash 02_gen_panorama.sh "$UMUS" "$PHIS" "$SZA" "$PHI0" "$PHOTONS" "$LIBRAD" "$WORKDIR" "$ATM" "$ALBEDO" "$WAVELENGTH" "$FNAME" "$mc_panorama_view" "$mc_sensorposition" "$mc_sample_grid" "$mc_backward"
 	echo Panorama generated
+	
+	#combine radiances into netcdf
+	python3 mergerads.py
 
 	#output used parameters
 	bash op_parameters.sh "$UMUS" "$PHIS" "$SZA" "$PHI0" "$ZLEV" "$NLAY" "$SAMPLEGRID" "$LIBRAD" "$WORKDIR" "$ATM"
