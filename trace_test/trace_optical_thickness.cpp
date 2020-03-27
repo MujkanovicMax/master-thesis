@@ -107,7 +107,7 @@ int main(int argc, char** argv) {
     size_t Nypixel = 400;
     double fov = 2;
 
-    auto loc = Eigen::Vector3d{3.5,0.5,10};
+    auto loc = Eigen::Vector3d{4,0.5,10};
     double fovx = fov;
     double fovy = fov * Nxpixel / Nypixel;
     size_t rays = 90;
@@ -125,20 +125,23 @@ int main(int argc, char** argv) {
         for(size_t j = 0; j < Nxpixel; ++j) {
             double xpx = (j + 0.5) / Nxpixel;
             auto ray = cam.compute_ray(Eigen::Vector2d{xpx, ypx});
+	    //auto ray = Ray{loc, {0, 0, -1}};
 	    optical_thickness = 0;
 	    radiance = 0;
 	    
             for(auto slice: grid.walk_along(ray, 0., std::numeric_limits<double>::infinity())) {
 		    if(auto pvol = std::get_if<VolumeSlice>(&slice)) {
-                        auto n_index = indexDecompose<3>(pvol->idx, {nx,ny,nlyr});
-			size_t optprop_index = ((n_index[2] * nx) + n_index[0]) * ny + n_index[1];
-			size_t rad_index = ((n_index[0] * ny) + n_index[1]) * nlyr + n_index[2]; 
+                        auto [x,y,z] = indexDecompose<3>(pvol->idx, {nx,ny,nlyr});
+			size_t optprop_index = indexRecompose(std::array{z,x,y},std::array{nlyr,nx,ny});//((n_index[2] * nx) + n_index[0]) * ny + n_index[1];
+			size_t rad_index = indexRecompose(std::array{x,y,z+1},std::array{nx,ny,nlyr+1});//((n_index[0] * ny) + n_index[1]) * (nlyr+1) + n_index[2];
+		       	double L = Edir[rad_index];
 			transmission = exp(-optical_thickness);
 			double dtau = (pvol->tfar - pvol->tnear) * kext[optprop_index];
 			optical_thickness += dtau;
                         double phase_function = 1./(4*M_PI);
-			radiance += transmission * Edir[rad_index] * w0[optprop_index] * dtau * phase_function;  
+			radiance += transmission * L * w0[optprop_index] * dtau * phase_function;  
 //			radiance += transmission * sum_over_radiances_around_box(phase_function * incoming_radiance);
+//		        std::cout << "VolIdx = " << pvol->idx << "  L= " << L << "  x= " << x << "  y= " << y << "  z= " << z << " radidx = " << rad_index << " optpropidx = " << optprop_index << " w0=" << w0[optprop_index] << "  dtau=" << dtau << "  radiance=" << radiance << " kext=" << kext[optprop_index] << "\n";   
 		    }
 			    
 	    }
