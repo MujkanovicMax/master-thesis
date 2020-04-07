@@ -29,10 +29,14 @@ constexpr size_t indexRecompose(std::array<size_t,N> index, const std::array<siz
 }
 
 Eigen::Vector3d angleToVec(double mu, double phi) {
+    if(mu>1.01){std::cout << "mu to big:  " << mu << "\n"; std::abort();}
+    if(mu>1){mu=1;}
     double a = sin(acos(mu));
     double x = a*cos(phi);
     double y = a*sin(phi);
     double z = mu;
+    
+    if(std::isnan(a) ==1){ std::cout << mu << "  " << "\n";}
 
     return Eigen::Vector3d{x,y,z};
 }
@@ -60,16 +64,22 @@ double phase_HG(double g, double mu) {
 }
 
 
-double calc_pHG(double g, double mu, double width=0, size_t n = 200){
-    width = mu * 0.125;
-    double down = mu - width;
-    n = 200;
-    double delta = width/n;
-    double sum = 0;
-    for(size_t i = 0; i<n; ++i) {
-        sum += (phase_HG(g, down+i*delta) + phase_HG(g, down+(i+1)*delta))/2*delta;
+double calc_pHG(double wmu_s, double wmu_e, double wphi_s, double wphi_e, auto ray, double g, double n=50){
+    double delmu = (wmu_e-wmu_s)/n;
+    double delphi = (wphi_e - wphi_s)/n;
+    double pf = 0;
+
+    for(size_t i = 0; i<n; ++i){
+        double m = wmu_s + (i+0.5) * delmu;
+        for(size_t j = 0; j<n; ++j){
+            double p = wphi_s + (j+0.5) * delphi;
+            double sa = (-ray.d).dot(angleToVec(m,p));
+            pf += phase_HG(g, sa) * delmu * delphi;
+            if(pf < 0){std::cout << " negative \n";}
+            //std::cout << wmu_s << "  " << wmu_e << "  " << m << "  " << p << "  "  << g << "  " << sa << "  " << delmu << "  " << delphi << "\n";
+        }
     }
-    return sum;
+    return pf;
 }
 
 
@@ -78,29 +88,43 @@ std::array<double,3> calc_Ldiff(auto ray, double tfar, double tnear, size_t idx,
     double Lup = 0;
     double Ldown = 0;
     auto [x,y,z] = indexDecompose(idx, std::array<size_t,3>{nx,ny,nlyr+1});
-    //std::cout << "nmu = " << nmu << "  nphi = " << nphi << "\n";
-    double weight_sum = 0;
+    double wmu_s = -1;
+    double wphi_s = 0;
+    double wmu_e,wphi_e;
+    double pf,pf_n,pf_i;
 
     for(size_t i = 0; i < nmu; ++i) {
+        wmu_e = wmu_s + wmu[i];
+        wphi_s = 0;
         for(size_t j = 0; j < nphi; ++j) {
+            wphi_e = wphi_s + wphi[j];
             Eigen::Vector3d lvec = angleToVec(mu[i],phi[i]);
             auto muscatter = (-ray.d).dot(lvec); 
             double weight = wmu[i] * wphi[j];
             //std::cout << "Part 1\n";
             size_t index_t = indexRecompose(std::array<size_t,5>{x,y,z+1,i,j},std::array<size_t,5>{nx,ny,nlyr+1,nmu,nphi});
             size_t index_b = indexRecompose(std::array<size_t,5>{x,y,z,i,j},std::array<size_t,5>{nx,ny,nlyr+1,nmu,nphi});
+            if(g1==0){
+                pf = weight * phase_HG(g1, muscatter);
+            }
+            else{
+                pf = calc_pHG(wmu_s, wmu_e, wphi_s, wphi_e, ray, g1, 1);
+            }
+            //pf_n = weight * phase_HG(g1, muscatter);
+            //pf_i = calc_pHG(wmu_s, wmu_e, wphi_s, wphi_e, ray, g1);
             if(mu[i] < 0){
-                Ldown +=  rad[index_t] * weight * phase_HG(g1, muscatter);
+                Ldown +=  rad[index_t] * pf;
             }
-
             if(mu[i] > 0){
-                Lup += rad[index_b] * weight * phase_HG(g1, muscatter);
+                Lup += rad[index_b] * pf;           
             }
-            weight_sum += weight;
             //std::cout << phase_HG(g1, muscatter) << " " << muscatter  << "  mu = " << mu[i] << "  phi = " << phi[j] << "\n";
-            //std::cout << "PArt 2\n";
+            //if(g1 != 0){
+            //    std::cout << "pf_n = " << pf_n << "  pf_i = " << pf_i << "  wmu = " << wmu[i] << "  wphi = " << wphi[i] << "  pf_i/pf_n = " << pf_i/pf_n << "\n" ;
+            //}
+            wphi_s = wphi_e;
         }
-        
+        wmu_s = wmu_e;
     }
     return std::array<double,3>{Lup + Ldown,Lup,Ldown}; 
 }
@@ -276,7 +300,7 @@ int main(int argc, char** argv) {
                     Ldirs += Ldir;
                     Lcalc[0]= transmission * Lcalc[0] * w0[optprop_index] * dtau;
                     radiance += Ldir + Lcalc[0];
-                    std::cout << "Ldir = " << Ldir << "  pHG = " << phase_function << " sc_angle = " << (-ray.d).dot(sza_dir.normalized()) << "\n";  
+                    //std::cout << "Ldir = " << Ldir << "  pHG = " << phase_function << " sc_angle = " << (-ray.d).dot(sza_dir.normalized()) << "\n";  
 //                    std::cout << "VolIdx = " << pvol->idx << "  L= " << L << "  Ldiff= "  << Ldiff << "  g= " <<  g1[optprop_index] << "  x= " << x << "  y= " << y << "  z= " << z << " radidx = " << rad_index << " optpropidx = " << optprop_index << " w0=" << w0[optprop_index] << "  dtau=" << dtau << "  opthick= " << optical_thickness  <<"  radiance=" << radiance << " kext=" << kext[optprop_index] << "\n";   
                 }
 
@@ -290,7 +314,8 @@ int main(int argc, char** argv) {
             Lup_i[j+i*Nxpixel] = Lup;
             Ldown_i[j+i*Nxpixel] = Ldown;
             Ldir_i[j+i*Nxpixel] = Ldirs;
-            
+           
+            std::cout << "Pixel " << j << " done" << "  ival = " << image[j+i*Nxpixel]  <<"\n";
         }
     }
 
