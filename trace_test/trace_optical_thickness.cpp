@@ -7,127 +7,8 @@
 #include <cmath>
 #include <numeric>
 #include <Eigen/Dense>
+#include "functions.hpp"
 
-template <size_t N>
-constexpr std::array<size_t,N> indexDecompose(size_t index, const std::array<size_t,N>& shape) {
-    std::array<size_t,N> out = {};
-    for(size_t i = N; i>0; --i) {
-        out[i-1] = index % shape[i-1];
-        index /= shape[i-1];	
-    }
-    return out;
-}	
-
-template <size_t N>
-constexpr size_t indexRecompose(std::array<size_t,N> index, const std::array<size_t,N>& shape) {
-    size_t out = 0;//index[0] * shape[1]
-    for(size_t i = 0; i<N-1; ++i) {
-        out += index[i];
-        out *= shape[i+1];
-    }
-    return out + index[N-1];
-}
-
-Eigen::Vector3d angleToVec(double mu, double phi) {
-    if(mu>1.01){std::cout << "mu to big:  " << mu << "\n"; std::abort();}
-    if(mu>1){mu=1;}
-    double a = sin(acos(mu));
-    double x = a*cos(phi);
-    double y = a*sin(phi);
-    double z = mu;
-    
-    if(std::isnan(a) ==1){ std::cout << mu << "  " << "\n";}
-
-    return Eigen::Vector3d{x,y,z};
-}
-
-
-double groundReflection_lambert(auto ray, size_t idx, double albedo, size_t nx, size_t ny, size_t nlyr, size_t nmu, size_t nphi, std::vector<double> mu, std::vector<double> wmu, std::vector<double> wphi, const std::vector<double>& Edir, const std::vector<double>& rad) {
-    double E = Edir[idx] * albedo / M_PI * 0.707;
-    auto [x,y,z] = indexDecompose(idx, std::array<size_t,3>{nx,ny,nlyr+1});
-    //std::cout << x << "  " << y << "  " << z << "  " << Edir[idx]  << "  " << albedo << "  " << M_PI << "  " << E  << "\n"; 
-    double irradiance = 0;
-    for(size_t i = 0; i<nmu; ++i) {
-        for(size_t j = 0; j<nphi; ++j) {
-            size_t index = indexRecompose(std::array<size_t,5>{x,y,z,i,j},std::array<size_t,5>{nx,ny,nlyr+1,nmu,nphi});
-            if(mu[i] < 0) {
-                irradiance += rad[index] * abs(mu[i])  * wmu[i] * wphi[j];	
-            }
-        }
-    }
-    E += irradiance * albedo / M_PI;
-    return E;
-}
-
-double phase_HG(double g, double mu) {
-    return 1./(4*M_PI) * (1-g*g)/pow(1+g*g-2*g*mu,3./2.);
-}
-
-
-double calc_pHG(double wmu_s, double wmu_e, double wphi_s, double wphi_e, auto ray, double g, double n=50){
-    double delmu = (wmu_e-wmu_s)/n;
-    double delphi = (wphi_e - wphi_s)/n;
-    double pf = 0;
-
-    for(size_t i = 0; i<n; ++i){
-        double m = wmu_s + (i+0.5) * delmu;
-        for(size_t j = 0; j<n; ++j){
-            double p = wphi_s + (j+0.5) * delphi;
-            double sa = (-ray.d).dot(angleToVec(m,p));
-            pf += phase_HG(g, sa) * delmu * delphi;
-            if(pf < 0){std::cout << " negative \n";}
-            //std::cout << wmu_s << "  " << wmu_e << "  " << m << "  " << p << "  "  << g << "  " << sa << "  " << delmu << "  " << delphi << "\n";
-        }
-    }
-    return pf;
-}
-
-
-std::array<double,3> calc_Ldiff(auto ray, double tfar, double tnear, size_t idx, double g1, size_t nx, size_t ny, size_t nlyr, size_t nmu, size_t nphi,
-        std::vector<double> mu, std::vector<double> phi, std::vector<double> wmu, std::vector<double> wphi, std::vector<double> rad) {
-    double Lup = 0;
-    double Ldown = 0;
-    auto [x,y,z] = indexDecompose(idx, std::array<size_t,3>{nx,ny,nlyr+1});
-    double wmu_s = -1;
-    double wphi_s = 0;
-    double wmu_e,wphi_e;
-    double pf,pf_n,pf_i;
-
-    for(size_t i = 0; i < nmu; ++i) {
-        wmu_e = wmu_s + wmu[i];
-        wphi_s = 0;
-        for(size_t j = 0; j < nphi; ++j) {
-            wphi_e = wphi_s + wphi[j];
-            Eigen::Vector3d lvec = angleToVec(mu[i],phi[i]);
-            auto muscatter = (-ray.d).dot(lvec); 
-            double weight = wmu[i] * wphi[j];
-            //std::cout << "Part 1\n";
-            size_t index_t = indexRecompose(std::array<size_t,5>{x,y,z+1,i,j},std::array<size_t,5>{nx,ny,nlyr+1,nmu,nphi});
-            size_t index_b = indexRecompose(std::array<size_t,5>{x,y,z,i,j},std::array<size_t,5>{nx,ny,nlyr+1,nmu,nphi});
-            if(g1==0){
-                pf = weight * phase_HG(g1, muscatter);
-            }
-            else{
-                pf = calc_pHG(wmu_s, wmu_e, wphi_s, wphi_e, ray, g1, 1);
-            }
-            //pf_n = weight * phase_HG(g1, muscatter);
-            //pf_i = calc_pHG(wmu_s, wmu_e, wphi_s, wphi_e, ray, g1);
-            if(mu[i] < 0){
-                Ldown +=  rad[index_t] * pf;
-            }
-            if(mu[i] > 0){
-                Lup += rad[index_b] * pf;           
-            }
-            //std::cout << phase_HG(g1, muscatter) << " " << muscatter  << "  mu = " << mu[i] << "  phi = " << phi[j] << "\n";
-            //if(g1 != 0){
-            //    std::cout << "pf_n = " << pf_n << "  pf_i = " << pf_i << "  wmu = " << wmu[i] << "  wphi = " << wphi[i] << "  pf_i/pf_n = " << pf_i/pf_n << "\n" ;
-            //}
-            wphi_s = wphi_e;
-        }
-        wmu_s = wmu_e;
-    }
-    return std::array<double,3>{Lup + Ldown,Lup,Ldown}; 
-}
 
 int main(int argc, char** argv) {
     std::cout << "trace optical thickness\n";
@@ -142,14 +23,14 @@ int main(int argc, char** argv) {
     {
         using namespace netCDF;
 
-        NcFile file("radiances_t.nc", NcFile::FileMode::read);
+        NcFile file("/home/m/Mujkanovic.Max/ma/radiances/radiances_mu64_phi64.nc", NcFile::FileMode::read);
         size_t nx = file.getDim("x").getSize(); 
         size_t ny = file.getDim("y").getSize(); 
         size_t nz = file.getDim("z").getSize(); 
         nphi = file.getDim("phi").getSize(); 
         nmu = file.getDim("mu").getSize(); 
         size_t nwvl  = file.getDim("wvl").getSize();
-
+        std::cout << nx*ny*nz*nmu*nphi*nwvl << "\n";
         radiances.resize(nx*ny*nz*nmu*nphi*nwvl);
         mus.resize(nmu);
         phis.resize(nphi);
@@ -173,13 +54,14 @@ int main(int argc, char** argv) {
     
 
     std::vector<double> Edir;
+    std::vector<double> Edown;
     Eigen::Vector3d sza_dir;
     double muEdir;
 
     {
         using namespace netCDF;
 
-        NcFile file("Edir_t.nc", NcFile::FileMode::read);
+        NcFile file("/home/m/Mujkanovic.Max/ma/radiances/job_flx/mc.flx.spc.nc", NcFile::FileMode::read);
         size_t Nx = file.getDim("x").getSize(); 
         size_t Ny = file.getDim("y").getSize(); 
         size_t Nz = file.getDim("z").getSize(); 
@@ -187,12 +69,14 @@ int main(int argc, char** argv) {
 
         file.getAtt("mu0").getValues(&muEdir);
 
-        sza_dir[0] = sin(acos(muEdir));
+        sza_dir[0] = -sin(acos(muEdir));
         sza_dir[1] = 0;
         sza_dir[2] = muEdir;
 
         Edir.resize(Nx*Ny*Nz*Nwvl);
+        Edown.resize(Nx*Ny*Nz*Nwvl);
         file.getVar("Edir").getVar(Edir.data());
+        file.getVar("Edown").getVar(Edown.data());
 
 
     }
@@ -204,8 +88,6 @@ int main(int argc, char** argv) {
     std::vector<double> zlev;
     std::vector<double> w0,g1;
     size_t nlev, nlyr, nx, ny;
-    double dx = 0.1;
-    double dy = 1.;
 
     { 
         using namespace netCDF;
@@ -230,6 +112,8 @@ int main(int argc, char** argv) {
         ke *= 1000;
     }
 
+    double dx = 0.1;
+    double dy = 1;
 
 
     auto mgrid = rayli::vgrid::MysticCloud(dx, dy, nx, ny, zlev);
@@ -241,7 +125,7 @@ int main(int argc, char** argv) {
     size_t Nypixel = 1;
     double fov = 2;
 
-    auto loc = Eigen::Vector3d{4,0.01,2};
+    auto loc = Eigen::Vector3d{3,0.01,2};
     double fovx = fov;
     double fovy = fov * Nxpixel / Nypixel;
     size_t rays = 90;
@@ -260,6 +144,9 @@ int main(int argc, char** argv) {
     std::vector<double> Lup_i(Nxpixel * Nypixel);
     std::vector<double> Ldown_i(Nxpixel * Nypixel);
     std::vector<double> Ldir_i(Nxpixel * Nypixel);
+    std::vector<double> groundbox(Nxpixel * Nypixel);
+    std::vector<double> gRdir_i(Nxpixel * Nypixel);
+    std::vector<double> gRdiff_i(Nxpixel * Nypixel);
     double Ldiff,Lup,Ldown,Ldir,Ldirs;
     double optical_thickness;
     double radiance;
@@ -269,7 +156,7 @@ int main(int argc, char** argv) {
         for(size_t j = 0; j < Nxpixel; ++j) {
             double xpx = (j + 0.5) / Nxpixel;
             auto ray = cam.compute_ray(Eigen::Vector2d{xpx, ypx});
-            //auto ray = Ray{loc, Eigen::Vector3d{0, 0, -1}.normalized()};
+            //auto ray = Ray{loc, Eigen::Vector3d{0.5, 0, -1}.normalized()};
             optical_thickness = 0;
             radiance = 0;
             Ldiff = 0;
@@ -282,16 +169,19 @@ int main(int argc, char** argv) {
             for(auto slice: grid.walk_along(ray, 0., std::numeric_limits<double>::infinity())) {
                 if(auto pvol = std::get_if<VolumeSlice>(&slice)) {
                     auto [x,y,z] = indexDecompose<3>(pvol->idx, {nx,ny,nlyr});
+                    //std::cout << x << " " << y << " " << z << " " << "\n";
                     size_t optprop_index = indexRecompose(std::array{z,x,y},std::array{nlyr,nx,ny});//((n_index[2] * nx) + n_index[0]) * ny + n_index[1];
                     size_t rad_index = indexRecompose(std::array{x,y,z+1},std::array{nx,ny,nlyr+1});//((n_index[0] * ny) + n_index[1]) * (nlyr+1) + n_index[2];
                     groundidx = indexRecompose(std::array{x,y,z},std::array{nx,ny,nlyr+1});
-                    double L = Edir[rad_index];
+                    double L = Edir[rad_index]/fabs(muEdir);
                     transmission = exp(-optical_thickness);
                     double dtau = (pvol->tfar - pvol->tnear) * kext[optprop_index];
+                    
                     optical_thickness += dtau;
                     double phase_function = phase_HG(g1[optprop_index], (-ray.d).dot(sza_dir.normalized()));
                     std::array<double,3> Lcalc = calc_Ldiff(ray,pvol->tfar, pvol->tnear, pvol->idx, g1[optprop_index], nx, ny, nlyr, nmu, nphi, mus, phis, wmus, wphis, radiances);
-               //     std::cout << Lcalc[0] << "  " << Lcalc[1] << "  " <<  Lcalc[2] << "  " << transmission << "  " << dtau  <<  "\n";
+
+                    //std::cout << Lcalc[0] << "  " << Lcalc[1] << "  " <<  Lcalc[2] << "  " << transmission << "  " << dtau  << "  " << w0[optprop_index] <<  "\n";
                     Ldiff += Lcalc[0] * transmission * w0[optprop_index] * dtau;
                     Lup += Lcalc[1] * transmission * w0[optprop_index] * dtau;
                     Ldown += Lcalc[2] * transmission * w0[optprop_index] * dtau;
@@ -306,7 +196,8 @@ int main(int argc, char** argv) {
 
             }
 
-            double ground_E = groundReflection_lambert(ray,groundidx,albedo, nx, ny, nlyr, nmu, nphi, mus, wmus, wphis, Edir, radiances) *  exp(-optical_thickness);            
+            auto [gRdir, gRdiff] = groundReflection_lambert(ray,groundidx,albedo, nx, ny, nlyr, nmu, nphi, mus, wmus, wphis, Edir, radiances); 
+            double ground_E = gRdir *  exp(-optical_thickness);            
 //            std::cout << ground_E << "\n";
             image[j + i * Nxpixel] = radiance + ground_E;
             opthick_image[j+i*Nxpixel] = optical_thickness;
@@ -314,14 +205,18 @@ int main(int argc, char** argv) {
             Lup_i[j+i*Nxpixel] = Lup;
             Ldown_i[j+i*Nxpixel] = Ldown;
             Ldir_i[j+i*Nxpixel] = Ldirs;
+            groundbox[j+i*Nxpixel] = indexDecompose<3>(groundidx,std::array<size_t,3>{nx,ny,nlyr})[0];
+            gRdir_i[j+i*Nxpixel] = ground_E;
+            gRdiff_i[j+i*Nxpixel] = gRdiff * exp(-optical_thickness);
+
            
-            std::cout << "Pixel " << j << " done" << "  ival = " << image[j+i*Nxpixel]  <<"\n";
+            std::cout << "Pixel " << j << " done" << "  ival = " << image[j+i*Nxpixel] << " " <<  Ldiff_i[j+i*Nxpixel] << " "  << Lup_i[j+i*Nxpixel] << " " << Ldown_i[j+i*Nxpixel]<< " " << Ldir_i[j+i*Nxpixel] <<"\n";
         }
     }
 
     {
         using namespace netCDF;    
-        NcFile file("output.nc", NcFile::FileMode::replace);
+        NcFile file("output2.nc", NcFile::FileMode::replace);
         auto xdim = file.addDim("x", Nxpixel);
         auto ydim = file.addDim("y", Nypixel);
         file.addVar("image", NcType::nc_DOUBLE, {ydim, xdim}).putVar(image.data());
@@ -330,6 +225,9 @@ int main(int argc, char** argv) {
         file.addVar("Lup", NcType::nc_DOUBLE, {ydim, xdim}).putVar(Lup_i.data());
         file.addVar("Ldown", NcType::nc_DOUBLE, {ydim, xdim}).putVar(Ldown_i.data());
         file.addVar("Ldir", NcType::nc_DOUBLE, {ydim, xdim}).putVar(Ldir_i.data());
+        file.addVar("groundbox", NcType::nc_UINT64, {ydim, xdim}).putVar(groundbox.data());
+        file.addVar("gRdir", NcType::nc_DOUBLE, {ydim, xdim}).putVar(gRdir_i.data());
+        file.addVar("gRdiff", NcType::nc_DOUBLE, {ydim, xdim}).putVar(gRdiff_i.data());
 
     }
     
