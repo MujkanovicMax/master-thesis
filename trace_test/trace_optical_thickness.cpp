@@ -42,16 +42,45 @@ int main(int argc, char** argv) {
         file.getVar("phi").getVar(phis.data());
         file.getVar("wmu").getVar(wmus.data());
         file.getVar("wphi").getVar(wphis.data());
-        //for(size_t m = 0; m<radiances.size(); ++m){
-        //    auto [x,y,z,imu,iphi] = indexDecompose<5>(m,std::array<size_t,5>{nx,ny,nz,nmu,nphi});
-        //    if(mus[imu] > 0){
-        //        radiances[m] = 0;    
-        //    }   
-        //    
-        //}
     }
     
-    
+    double wmu_s = -1;
+    double wmu_e;
+    std::array<double,nmu*nphi*3> streams = {};
+    for(size_t i = 0; i < nmu; ++i) {
+        for(size_t j = 0; j < nphi; ++j) {
+            Eigen::Vector3d dir = angleToVec(mus[i],phis[j]);
+            for(size_t x = 0; x < 3; ++x) {
+                size_t idx = indexRecompose(std::array<size_t,3>{i,j,x}, std::array<size_t,2>{nmu,nphi,3});
+                streams[idx] = dir[x];
+            }
+        }
+    }
+
+    std::array<double,nmu*nphi*nsub*nsub*3> substreams = {};
+    for(size_t i = 0; i < nmu; ++i) {
+        wmu_e = wmu_s + wmus[i];
+        for(size_t j = 0; j < nphi; ++j) {
+            double delmu = (wmu_e-wmu_s)/nsub;
+            double delphi = wphis[j]/nsub;
+            double wphi_s = phis[j] - wphis[j]/2;
+            double wphi_e = phis[j] + wphis[j]/2;
+            for(size_t is = 0; is<nsub; ++is){
+                double m = wmu_s + (is+0.5) * delmu;
+                for(size_t js = 0; js<nsub; ++js){
+                    double p = wphi_s + (js+0.5) * delphi;
+                    Eigen::Vector3d dir = angleToVec(m,p);
+                    for(size_t x = 0; x < 3; ++x) {
+                        size_t idx = indexRecompose(std::array<size_t,5>{i,j,is,js,3}, std::array<size_t,5>{nmu,nphi,nsub,nsub,3});
+                        substreams[idx] = dir[x];
+                    }
+                }
+            }
+        }
+        wmu_s = wmu_e;
+    }
+
+     
 
     std::vector<double> Edir;
     std::vector<double> Edown;

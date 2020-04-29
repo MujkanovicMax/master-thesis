@@ -49,7 +49,7 @@ mc_vroom on
 no_scattering mol
 no_absorption mol
 
-test_optical_properties
+#test_optical_properties
 
 EOFJOB
 

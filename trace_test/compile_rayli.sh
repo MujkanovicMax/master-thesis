@@ -9,6 +9,6 @@ LDFLAGS="\
 	"
 LIBS="-lrayli_common -lnetcdf_c++4 -lnetcdf -lhdf5_hl -lhdf5 -lm -ldl -lz -lcurl"
 
-CFLAGS="-std=c++17 -ggdb -O2" #-fsanitize=address -fsanitize=undefined"
+CFLAGS="-std=c++17 -ggdb -O3" #-fsanitize=address -fsanitize=undefined"
 
 g++ $CFLAGS -o trace_optical_thickness $INCLUDES trace_optical_thickness.cpp $LDFLAGS $LIBS

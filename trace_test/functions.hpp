@@ -54,7 +54,6 @@ Eigen::Vector3d angleToVec(double mu, double phi) {
 std::array<double,2> groundReflection_lambert(auto ray, size_t idx, double albedo, size_t nx, size_t ny, size_t nlyr, size_t nmu, size_t nphi, std::vector<double> mu, std::vector<double> wmu, std::vector<double> wphi, const std::vector<double>& Edir, const std::vector<double>& rad) {    
     double E = Edir[idx] * albedo / M_PI;
     auto [x,y,z] = indexDecompose(idx, std::array<size_t,3>{nx,ny,nlyr+1});  
-    //std::cout << x << "  " << y << "  " << z << "  " << Edir[idx]  << "  " << albedo << "  " << M_PI << "  " << E  << "\n"; 
     double irradiance = 0;
     for(size_t i = 0; i<nmu; ++i) {
         for(size_t j = 0; j<nphi; ++j) {
@@ -69,11 +68,12 @@ std::array<double,2> groundReflection_lambert(auto ray, size_t idx, double albed
 }
 
 double phase_HG(double g, double mu) {
-    return 1./(4*M_PI) * (1-g*g)/pow(1+g*g-2*g*mu,3./2.);
+    double f = 1+g*g-2*g*mu;
+    return 1./(4*M_PI) * (1-g*g)/std::sqrt(f*f*f);
 }
 
 
-double calc_pHG(double wmu_s, double wmu_e, double phi, double wphi, auto ray, double g, double n=50){
+double calc_pHG(double wmu_s, double wmu_e, double phi, double wphi, auto ray, double g, double n, Eigen::Vector3d lvec){
     double delmu = (wmu_e-wmu_s)/n;
     double delphi = wphi/n;
     double pf = 0;
@@ -91,20 +91,17 @@ double calc_pHG(double wmu_s, double wmu_e, double phi, double wphi, auto ray, d
             pf += phase_HG(g, sa);
             weightsum += 1;
             if(pf < 0){std::cout << " negative \n";}
-            //std::cout << wmu_s << "  " << wmu_e << "  " << m << "  " << p << "  "  << g << "  " << sa << "  " << delmu << "  " << delphi << " " << pf << "\n";
         }
     }
-    //std::cout << weightsum << " " << pf << "\n";
     return pf/(n*n);
 }
 
 
-std::array<double,3> calc_Ldiff(auto ray, double tfar, double tnear, size_t idx, double g1, size_t nx, size_t ny, size_t nlyr, size_t nmu, size_t nphi,
-        std::vector<double> mu, std::vector<double> phi, std::vector<double> wmu, std::vector<double> wphi, std::vector<double> rad) {
+std::array<double,3> calc_Ldiff(const Ray& ray, double tfar, double tnear, size_t idx, double g1, size_t nx, size_t ny, size_t nlyr, size_t nmu, size_t nphi,
+        const std::vector<double>& mu, const std::vector<double>& phi, const std::vector<double>& wmu, const std::vector<double>& wphi, const std::vector<double>& rad) {
     double Lup = 0;
     double Ldown = 0;
     auto [x,y,z] = indexDecompose<3>(idx, {nx,ny,nlyr});
-    //std::cout << "in func: " << x << " " << y << " " << z << "\n";
     double wmu_s = -1;
     double wmu_e,wphi_e;
     double pf,pf_n,pf_i;
@@ -112,41 +109,24 @@ std::array<double,3> calc_Ldiff(auto ray, double tfar, double tnear, size_t idx,
     for(size_t i = 0; i < nmu; ++i) {
         wmu_e = wmu_s + wmu[i];
         for(size_t j = 0; j < nphi; ++j) {
-            Eigen::Vector3d lvec = angleToVec(mu[i],phi[i]);
+            Eigen::Vector3d lvec = angleToVec(mu[i],phi[j]);
             auto muscatter = (-ray.d).dot(lvec); 
             double weight = wmu[i] * wphi[j];
-            //std::cout << "Part 1\n";
             size_t index_t = indexRecompose(std::array<size_t,5>{x,y,z+1,i,j},std::array<size_t,5>{nx,ny,nlyr+1,nmu,nphi});
             size_t index_b = indexRecompose(std::array<size_t,5>{x,y,z,i,j},std::array<size_t,5>{nx,ny,nlyr+1,nmu,nphi});
-            if(0==0){
+            if(g1==0){
                 pf = weight * phase_HG(g1, muscatter);
             }
             else{
-                pf = weight * calc_pHG(wmu_s, wmu_e, phi[j], wphi[j], ray, g1, 1);
+                pf = weight * calc_pHG(wmu_s, wmu_e, phi[j], wphi[j], ray, g1, 10, lvec);
             }
-            //pf_n = weight * phase_HG(g1, muscatter);
-            //pf_i = calc_pHG(wmu_s, wmu_e, wphi_s, wphi_e, ray, g1);
             if(mu[i] < 0){
                 Ldown +=  rad[index_t] * pf;
-                //if(z < 25){
-                //    auto [a,b,c,d,e] = indexDecompose<5>(index_t, {nx,ny,nlyr+1,nmu,nphi});
-                //    std::cout << "down: "  << a << " " << b << " " << c << " " << d << " " << e <<  "\n";
-                //    std::cout << rad[index_t] << "     " << pf << "\n";
-                //}
             }
             if(mu[i] > 0){
                 Lup += rad[index_b] * pf;
-                //if(z < 25){
-                //    auto [a,b,c,d,e] = indexDecompose<5>(index_b, {nx,ny,nlyr+1,nmu,nphi});
-                //    std::cout << "up: " << a << " " << b << " " << c << " " << d << " " << e <<  "\n";
-                //    std::cout << rad[index_b] << "     " << pf << "\n";
-                //}
             }
 
-            //std::cout << phase_HG(g1, muscatter) << " " << muscatter  << "  mu = " << mu[i] << "  phi = " << phi[j] << "\n";
-            //if(g1 != 0){
-            //    std::cout << "pf_n = " << pf_n << "  pf_i = " << pf_i << "  wmu = " << wmu[i] << "  wphi = " << wphi[i] << "  pf_i/pf_n = " << pf_i/pf_n << "\n" ;
-            //}
         }
         wmu_s = wmu_e;
     }

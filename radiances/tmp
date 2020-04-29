@@ -1,0 +1,22 @@
+04_convertToNetCDF.sh: line 0: cd: 04_convertToNetCDF.sh: Not a directory
+/home/m/Mujkanovic.Max/ma/radiances/job_mu16
+rm: cannot remove 'mc.rad.spc.nc': No such file or directory
+Error, there is no data to convert!
+tmp: line 0: cd: tmp: Not a directory
+/home/m/Mujkanovic.Max/ma/radiances/job_mu16
+rm: cannot remove 'mc.rad.spc.nc': No such file or directory
+Error, there is no data to convert!
+/home/m/Mujkanovic.Max/ma/radiances
+/home/m/Mujkanovic.Max/ma/radiances
+tmp: line 0: cd: tmp: Not a directory
+/home/m/Mujkanovic.Max/ma/radiances/job_mu32
+rm: cannot remove 'mc.rad.spc.nc': No such file or directory
+bash: 04_convertToNetCDF.sh: No such file or directory
+/home/m/Mujkanovic.Max/ma/radiances
+/home/m/Mujkanovic.Max/ma/radiances
+tmp: line 0: cd: tmp: Not a directory
+/home/m/Mujkanovic.Max/ma/radiances/job_mu64
+rm: cannot remove 'mc.rad.spc.nc': No such file or directory
+bash: 04_convertToNetCDF.sh: No such file or directory
+/home/m/Mujkanovic.Max/ma/radiances
+/home/m/Mujkanovic.Max/ma/radiances

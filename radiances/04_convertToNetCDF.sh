@@ -1,3 +1,5 @@
+#!/bin/bash
+
 function convert_librad2nc {
   if [ ! -e mc.rad.spc ]; then
     echo "Error, there is no data to convert!"
@@ -9,15 +11,24 @@ import numpy as np
 
 mystic_output = './mc.rad.spc'
 
-with open("uvspec.inp") as D:
-	lines = D.readlines()
-	for line in lines:
-		if line.startswith('umu '):
-			mu = float(line.split()[1])
-		if line.startswith('phi '):
-			phi = float(line.split()[1])
-	
-wvl, j, i, k, l = np.loadtxt(mystic_output, unpack=True)
+try:
+	with open("uvspec.inp") as D:
+		lines = D.readlines()
+		for line in lines:
+			if line.startswith('umu '):
+				mu = np.round(float(line.split()[1]),3)
+			if line.startswith('phi '):
+				phi = np.round(float(line.split()[1]),3)
+except:
+	with open("uvspec_panorama.inp") as D:
+		lines = D.readlines()
+		for line in lines:
+			if line.startswith('umu '):
+				mu = np.round(float(line.split()[1]),3)
+			if line.startswith('phi '):
+				phi = np.round(float(line.split()[1]),3)
+		
+wvl, i, j, k, l = np.loadtxt(mystic_output, unpack=True)
 xdim, x_target_idx = np.unique(i,return_inverse=True)
 ydim, y_target_idx = np.unique(j,return_inverse=True)
 zdim, z_target_idx = np.unique(k,return_inverse=True)
@@ -44,5 +55,5 @@ rm convert_data.py
 
 }
 
-convert_librad2nc
+if [ ! -e mc.rad.spc.nc ]; then convert_librad2nc; fi
 
