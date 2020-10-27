@@ -11,8 +11,8 @@
 
 
 int main(int argc, char** argv) {
-    std::cout << "trace optical thickness\n";
-
+    std::cout << "Reading netcdf data" << "\n";
+    //Reading in netcdf data
     std::vector<double> radiances;
     std::vector<double> mus;
     std::vector<double> phis;
@@ -23,7 +23,7 @@ int main(int argc, char** argv) {
     {
         using namespace netCDF;
 
-        NcFile file("/home/m/Mujkanovic.Max/ma/radiances/radiances_mu64_phi64.nc", NcFile::FileMode::read);
+        NcFile file("/home/m/Mujkanovic.Max/ma/radiances/radiances_mu16_phi16.nc", NcFile::FileMode::read);
         size_t nx = file.getDim("x").getSize(); 
         size_t ny = file.getDim("y").getSize(); 
         size_t nz = file.getDim("z").getSize(); 
@@ -44,44 +44,6 @@ int main(int argc, char** argv) {
         file.getVar("wphi").getVar(wphis.data());
     }
     
-    double wmu_s = -1;
-    double wmu_e;
-    std::array<double,nmu*nphi*3> streams = {};
-    for(size_t i = 0; i < nmu; ++i) {
-        for(size_t j = 0; j < nphi; ++j) {
-            Eigen::Vector3d dir = angleToVec(mus[i],phis[j]);
-            for(size_t x = 0; x < 3; ++x) {
-                size_t idx = indexRecompose(std::array<size_t,3>{i,j,x}, std::array<size_t,2>{nmu,nphi,3});
-                streams[idx] = dir[x];
-            }
-        }
-    }
-
-    std::array<double,nmu*nphi*nsub*nsub*3> substreams = {};
-    for(size_t i = 0; i < nmu; ++i) {
-        wmu_e = wmu_s + wmus[i];
-        for(size_t j = 0; j < nphi; ++j) {
-            double delmu = (wmu_e-wmu_s)/nsub;
-            double delphi = wphis[j]/nsub;
-            double wphi_s = phis[j] - wphis[j]/2;
-            double wphi_e = phis[j] + wphis[j]/2;
-            for(size_t is = 0; is<nsub; ++is){
-                double m = wmu_s + (is+0.5) * delmu;
-                for(size_t js = 0; js<nsub; ++js){
-                    double p = wphi_s + (js+0.5) * delphi;
-                    Eigen::Vector3d dir = angleToVec(m,p);
-                    for(size_t x = 0; x < 3; ++x) {
-                        size_t idx = indexRecompose(std::array<size_t,5>{i,j,is,js,3}, std::array<size_t,5>{nmu,nphi,nsub,nsub,3});
-                        substreams[idx] = dir[x];
-                    }
-                }
-            }
-        }
-        wmu_s = wmu_e;
-    }
-
-     
-
     std::vector<double> Edir;
     std::vector<double> Edown;
     Eigen::Vector3d sza_dir;
@@ -97,11 +59,8 @@ int main(int argc, char** argv) {
         size_t Nwvl = file.getDim("wvl").getSize();
 
         file.getAtt("mu0").getValues(&muEdir);
-
-        sza_dir[0] = -sin(acos(muEdir));
-        sza_dir[1] = 0;
-        sza_dir[2] = muEdir;
-
+        sza_dir = angleToVec(muEdir,270);
+//        std::cout << "sza_dir = " << sza_dir.transpose() << "\n";
         Edir.resize(Nx*Ny*Nz*Nwvl);
         Edown.resize(Nx*Ny*Nz*Nwvl);
         file.getVar("Edir").getVar(Edir.data());
@@ -140,33 +99,33 @@ int main(int argc, char** argv) {
     for(auto& ke: kext) {
         ke *= 1000;
     }
+    std::cout << "done" << "\n";
 
+
+    // Grid Parameters and grid declaration
     double dx = 0.1;
     double dy = 1;
-
-
+    double albedo = 0.2;
     auto mgrid = rayli::vgrid::MysticCloud(dx, dy, nx, ny, zlev);
     auto grid = rayli::vgrid::Cyclic(mgrid, {{0, 0, -std::numeric_limits<double>::infinity()},{nx*dx, ny*dy, std::numeric_limits<double>::infinity()}});
-
     std::cout <<  dx << " " << dy << " " << " " << nx << " " << ny << "\n";
 
+    // Camera parameters and camera declaration
     size_t Nxpixel = 90;
     size_t Nypixel = 1;
     double fov = 2;
-
-    auto loc = Eigen::Vector3d{3,0.01,2};
+    auto loc = Eigen::Vector3d{4,0.01,2};
     double fovx = fov;
     double fovy = fov * Nxpixel / Nypixel;
     size_t rays = 90;
-
-    double albedo = 0.2;
-
-
-    //auto cam = SimpleCamera(loc, lookat({0,0,-1},{0,1,0}), fovx, fovy, rays);
     auto cam = MysticPanoramaCamera(loc, 0, 0, -45, 45, 90, 90, 90);
-    double transmission;
 
-
+    // Stream and substream calculations
+    size_t nsub = 10;
+    std::vector<double> streams = calcStreamDirs(mus,phis,nmu,nphi);
+    std::vector<double> substreams = calcSubstreamDirs(mus,phis,wmus,wphis,nmu,nphi,nsub);
+    
+    //Image Declarations
     std::vector<double> image(Nxpixel * Nypixel);
     std::vector<double> opthick_image(Nxpixel * Nypixel);
     std::vector<double> Ldiff_i(Nxpixel * Nypixel);
@@ -176,70 +135,66 @@ int main(int argc, char** argv) {
     std::vector<double> groundbox(Nxpixel * Nypixel);
     std::vector<double> gRdir_i(Nxpixel * Nypixel);
     std::vector<double> gRdiff_i(Nxpixel * Nypixel);
-    double Ldiff,Lup,Ldown,Ldir,Ldirs;
-    double optical_thickness;
-    double radiance;
-    //size_t I=0;    
+    
+    //Loop variables
+
+    //Main loop
+    std::cout << "Starting ray tracing..." << "\n";
     for(size_t i = 0; i < Nypixel; ++i) {
         double ypx = (i + 0.5) / Nypixel;
+        //for(size_t j = 0; j < 1; ++j) {
         for(size_t j = 0; j < Nxpixel; ++j) {
             double xpx = (j + 0.5) / Nxpixel;
             auto ray = cam.compute_ray(Eigen::Vector2d{xpx, ypx});
             //auto ray = Ray{loc, Eigen::Vector3d{0.5, 0, -1}.normalized()};
-            optical_thickness = 0;
-            radiance = 0;
-            Ldiff = 0;
-            Lup = 0;
-            Ldown = 0;
-            Ldirs = 0;
+            double optical_thickness = 0;
+            double radiance = 0;
+            double Lups = 0;
+            double Ldowns = 0;
+            double Ldirs = 0;
+            double Ldiffs = 0;
             size_t groundidx;
-            //std::cout << I << "\n";
-            //I++;
             for(auto slice: grid.walk_along(ray, 0., std::numeric_limits<double>::infinity())) {
                 if(auto pvol = std::get_if<VolumeSlice>(&slice)) {
                     auto [x,y,z] = indexDecompose<3>(pvol->idx, {nx,ny,nlyr});
-                    //std::cout << x << " " << y << " " << z << " " << "\n";
-                    size_t optprop_index = indexRecompose(std::array{z,x,y},std::array{nlyr,nx,ny});//((n_index[2] * nx) + n_index[0]) * ny + n_index[1];
-                    size_t rad_index = indexRecompose(std::array{x,y,z+1},std::array{nx,ny,nlyr+1});//((n_index[0] * ny) + n_index[1]) * (nlyr+1) + n_index[2];
+                    size_t optprop_index = indexRecompose(std::array{z,x,y},std::array{nlyr,nx,ny});
+                    size_t rad_index = indexRecompose(std::array{x,y,z+1},std::array{nx,ny,nlyr+1});
                     groundidx = indexRecompose(std::array{x,y,z},std::array{nx,ny,nlyr+1});
                     double L = Edir[rad_index]/fabs(muEdir);
-                    transmission = exp(-optical_thickness);
+                    double transmission = exp(-optical_thickness);
                     double dtau = (pvol->tfar - pvol->tnear) * kext[optprop_index];
-                    
                     optical_thickness += dtau;
                     double phase_function = phase_HG(g1[optprop_index], (-ray.d).dot(sza_dir.normalized()));
-                    std::array<double,3> Lcalc = calc_Ldiff(ray,pvol->tfar, pvol->tnear, pvol->idx, g1[optprop_index], nx, ny, nlyr, nmu, nphi, mus, phis, wmus, wphis, radiances);
-
-                    //std::cout << Lcalc[0] << "  " << Lcalc[1] << "  " <<  Lcalc[2] << "  " << transmission << "  " << dtau  << "  " << w0[optprop_index] <<  "\n";
-                    Ldiff += Lcalc[0] * transmission * w0[optprop_index] * dtau;
-                    Lup += Lcalc[1] * transmission * w0[optprop_index] * dtau;
-                    Ldown += Lcalc[2] * transmission * w0[optprop_index] * dtau;
-             //       std::cout << Ldiff << "  " << Lup << "  " << Ldown << "\n"; 
-                    Ldir = transmission * L * w0[optprop_index] * dtau * phase_function;
+                    auto [tmp, Lup, Ldown] = calc_Ldiff(ray,pvol->tfar, pvol->tnear, pvol->idx, g1[optprop_index], nx, ny, nlyr, nmu, nphi, mus, phis, wmus, wphis, radiances, streams, nsub, substreams);
+                    double scatter_prob = 1 - exp(-dtau*w0[optprop_index]);
+                    std::cout << " Lup = " << Lup << " Lup_sum = " << Lups <<" transm = "<< transmission << " w0 = " << w0[optprop_index] << " dtau = " << dtau  << " scatter_prob = " << scatter_prob << "\n";
+                    Lup *= transmission * scatter_prob;
+                    Ldown *= transmission * scatter_prob;
+                    double Ldir = transmission * L * scatter_prob * phase_function;
+                    Ldiffs += Lup + Ldown;
+                    Lups += Lup;
+                    Ldowns += Ldown;
                     Ldirs += Ldir;
-                    Lcalc[0]= transmission * Lcalc[0] * w0[optprop_index] * dtau;
-                    radiance += Ldir + Lcalc[0];
-                    //std::cout << "Ldir = " << Ldir << "  pHG = " << phase_function << " sc_angle = " << (-ray.d).dot(sza_dir.normalized()) << "\n";  
-//                    std::cout << "VolIdx = " << pvol->idx << "  L= " << L << "  Ldiff= "  << Ldiff << "  g= " <<  g1[optprop_index] << "  x= " << x << "  y= " << y << "  z= " << z << " radidx = " << rad_index << " optpropidx = " << optprop_index << " w0=" << w0[optprop_index] << "  dtau=" << dtau << "  opthick= " << optical_thickness  <<"  radiance=" << radiance << " kext=" << kext[optprop_index] << "\n";   
+                    radiance += Ldir + Lup + Ldown;
+
                 }
 
             }
 
-            auto [gRdir, gRdiff] = groundReflection_lambert(ray,groundidx,albedo, nx, ny, nlyr, nmu, nphi, mus, wmus, wphis, Edir, radiances); 
-            double ground_E = gRdir *  exp(-optical_thickness);            
-//            std::cout << ground_E << "\n";
+            auto [gR, gRdir, gRdiff] = groundReflection_lambert(ray,groundidx,albedo, nx, ny, nlyr, nmu, nphi, mus, wmus, wphis, Edir, radiances); 
+            double ground_E = gR *  exp(-optical_thickness);            
             image[j + i * Nxpixel] = radiance + ground_E;
             opthick_image[j+i*Nxpixel] = optical_thickness;
-            Ldiff_i[j+i*Nxpixel] = Ldiff;
-            Lup_i[j+i*Nxpixel] = Lup;
-            Ldown_i[j+i*Nxpixel] = Ldown;
+            Ldiff_i[j+i*Nxpixel] = Ldiffs;
+            Lup_i[j+i*Nxpixel] = Lups;
+            Ldown_i[j+i*Nxpixel] = Ldowns;
             Ldir_i[j+i*Nxpixel] = Ldirs;
             groundbox[j+i*Nxpixel] = indexDecompose<3>(groundidx,std::array<size_t,3>{nx,ny,nlyr})[0];
-            gRdir_i[j+i*Nxpixel] = ground_E;
+            gRdir_i[j+i*Nxpixel] = gRdir * exp(-optical_thickness);
             gRdiff_i[j+i*Nxpixel] = gRdiff * exp(-optical_thickness);
 
            
-            std::cout << "Pixel " << j << " done" << "  ival = " << image[j+i*Nxpixel] << " " <<  Ldiff_i[j+i*Nxpixel] << " "  << Lup_i[j+i*Nxpixel] << " " << Ldown_i[j+i*Nxpixel]<< " " << Ldir_i[j+i*Nxpixel] <<"\n";
+            std::cout << "Pixel " << j+1 << " done" << "  ival = " << image[j+i*Nxpixel] << " " <<  Ldiff_i[j+i*Nxpixel] << " "  << Lup_i[j+i*Nxpixel] << " " << Ldown_i[j+i*Nxpixel]<< " " << Ldir_i[j+i*Nxpixel] <<"\n";
         }
     }
 
@@ -262,9 +217,4 @@ int main(int argc, char** argv) {
     
 
 
-    //    for(auto slice: grid.walk_along(ray, 0., std::numeric_limits<double>::infinity())) {
-    //        if(auto pvol = std::get_if<VolumeSlice>(&slice)) {
-    //            std::cout << "passing volume " << pvol->idx << " from " << pvol->tnear << " to " << pvol->tfar << "\n";
-    //        }
-    //    }
 }
