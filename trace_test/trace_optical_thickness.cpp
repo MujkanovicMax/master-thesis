@@ -97,8 +97,11 @@ int main(int argc, char** argv) {
         for(size_t j = 0; j < Nxpixel; ++j) {
             
             double xpx = (j + 0.5) / Nxpixel;
+            
             auto ray = cam.compute_ray(Eigen::Vector2d{xpx, ypx});
             //auto ray = Ray{loc, Eigen::Vector3d{0.5, 0, -1}.normalized()};
+            
+            //sum zeroing
             double optical_thickness = 0;
             double radiance = 0;
             double Lups = 0;
@@ -111,18 +114,25 @@ int main(int argc, char** argv) {
                 
                 if(auto pvol = std::get_if<VolumeSlice>(&slice)) {
                     
+                    //index calculations ( 3D -> 1D, 1D -> 3D )
                     auto [x,y,z] = indexDecompose<3>(pvol->idx, {nx,ny,nlyr});
                     size_t optprop_index = indexRecompose(std::array{z,x,y},std::array{nlyr,nx,ny});
                     size_t rad_index = indexRecompose(std::array{x,y,z+1},std::array{nx,ny,nlyr+1});
                     groundidx = indexRecompose(std::array{x,y,z},std::array{nx,ny,nlyr+1});
+                    
+                    //main pixel calculation ( radiance summation, etc.)
                     double L = Edir[rad_index]/fabs(muEdir);
                     double transmission = exp(-optical_thickness);
                     double dtau = (pvol->tfar - pvol->tnear) * kext[optprop_index];
                     optical_thickness += dtau;
                     double phase_function = phase_HG(g1[optprop_index], (-ray.d).dot(sza_dir.normalized()));
-                    auto [tmp, Lup, Ldown] = calc_Ldiff(ray,pvol->tfar, pvol->tnear, pvol->idx, g1[optprop_index], nx, ny, nlyr, nmu, nphi, mus, phis, wmus, wphis, radiances, streams, nsub, substreams);
+                    auto [Lup_Plus_Ldown, Lup, Ldown] = calc_Ldiff(ray,pvol->tfar, pvol->tnear, pvol->idx, g1[optprop_index],\
+                                       nx, ny, nlyr, nmu, nphi, mus, phis, wmus, wphis, radiances, streams, nsub, substreams);
                     double scatter_prob = 1 - exp(-dtau*w0[optprop_index]);
-                    std::cout << " Lup = " << Lup << " Lup_sum = " << Lups <<" transm = "<< transmission << " w0 = " << w0[optprop_index] << " dtau = " << dtau  << " scatter_prob = " << scatter_prob << "\n";
+                    //std::cout << " Lup = " << Lup << " Lup_sum = " << Lups <<" transm = "<< transmission << " w0 = "\
+                            << w0[optprop_index] << " dtau = " << dtau  << " scatter_prob = " << scatter_prob << "\n";
+                    
+                    // summation for pixelvalues        
                     Lup *= transmission * scatter_prob;
                     Ldown *= transmission * scatter_prob;
                     double Ldir = transmission * L * scatter_prob * phase_function;
@@ -135,24 +145,27 @@ int main(int argc, char** argv) {
                 }
 
             }
-
+            //bottom-most index ground reflection calculation
             auto [gR, gRdir, gRdiff] = groundReflection_lambert(ray,groundidx,albedo, nx, ny, nlyr, nmu, nphi, mus, wmus, wphis, Edir, radiances); 
             double ground_E = gR *  exp(-optical_thickness);            
-            image[j + i * Nxpixel] = radiance + ground_E;
-            opthick_image[j+i*Nxpixel] = optical_thickness;
-            Ldiff_i[j+i*Nxpixel] = Ldiffs;
-            Lup_i[j+i*Nxpixel] = Lups;
-            Ldown_i[j+i*Nxpixel] = Ldowns;
-            Ldir_i[j+i*Nxpixel] = Ldirs;
-            groundbox[j+i*Nxpixel] = indexDecompose<3>(groundidx,std::array<size_t,3>{nx,ny,nlyr})[0];
-            gRdir_i[j+i*Nxpixel] = gRdir * exp(-optical_thickness);
-            gRdiff_i[j+i*Nxpixel] = gRdiff * exp(-optical_thickness);
+            
+            //writing pixelvalues to image
+            image[j + i * Nxpixel]      = radiance + ground_E;
+            opthick_image[j+i*Nxpixel]  = optical_thickness;
+            Ldiff_i[j+i*Nxpixel]        = Ldiffs;
+            Lup_i[j+i*Nxpixel]          = Lups;
+            Ldown_i[j+i*Nxpixel]        = Ldowns;
+            Ldir_i[j+i*Nxpixel]         = Ldirs;
+            groundbox[j+i*Nxpixel]      = indexDecompose<3>(groundidx,std::array<size_t,3>{nx,ny,nlyr})[0];
+            gRdir_i[j+i*Nxpixel]        = gRdir * exp(-optical_thickness);
+            gRdiff_i[j+i*Nxpixel]       = gRdiff * exp(-optical_thickness);
 
            
-            std::cout << "Pixel " << j+1 << " done" << "  ival = " << image[j+i*Nxpixel] << " " <<  Ldiff_i[j+i*Nxpixel] << " "  << Lup_i[j+i*Nxpixel] << " " << Ldown_i[j+i*Nxpixel]<< " " << Ldir_i[j+i*Nxpixel] <<"\n";
+            std::cout << "Pixel " << j+1 << " done" << "  ival = " << image[j+i*Nxpixel] << " "\
+                <<  Ldiff_i[j+i*Nxpixel] << " "  << Lup_i[j+i*Nxpixel] << " " << Ldown_i[j+i*Nxpixel]<< " " << Ldir_i[j+i*Nxpixel] <<"\n";
         }
     }
-
+    
     {
         using namespace netCDF;    
         NcFile file("output2.nc", NcFile::FileMode::replace);
