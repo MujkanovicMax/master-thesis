@@ -7,95 +7,43 @@
 #include <cmath>
 #include <numeric>
 #include <Eigen/Dense>
+#include <string>
 #include "functions.hpp"
 
 
 int main(int argc, char** argv) {
     std::cout << "Reading netcdf data" << "\n";
     //Reading in netcdf data
+    std::string radfpath = "/home/m/Mujkanovic.Max/ma/radiances/radiances_mu16_phi16.nc";
+
     std::vector<double> radiances;
     std::vector<double> mus;
     std::vector<double> phis;
     std::vector<double> wmus;
     std::vector<double> wphis;
     size_t nmu,nphi;
+    
+    read_radiances(radfpath, radiances, mus, phis, wmus, wphis,  nmu, nphi);
+   
 
-    {
-        using namespace netCDF;
-
-        NcFile file("/home/m/Mujkanovic.Max/ma/radiances/radiances_mu16_phi16.nc", NcFile::FileMode::read);
-        size_t nx = file.getDim("x").getSize(); 
-        size_t ny = file.getDim("y").getSize(); 
-        size_t nz = file.getDim("z").getSize(); 
-        nphi = file.getDim("phi").getSize(); 
-        nmu = file.getDim("mu").getSize(); 
-        size_t nwvl  = file.getDim("wvl").getSize();
-        std::cout << nx*ny*nz*nmu*nphi*nwvl << "\n";
-        radiances.resize(nx*ny*nz*nmu*nphi*nwvl);
-        mus.resize(nmu);
-        phis.resize(nphi);
-        wmus.resize(nmu);
-        wphis.resize(nphi);
-
-        file.getVar("radiance").getVar(radiances.data());
-        file.getVar("mu").getVar(mus.data());
-        file.getVar("phi").getVar(phis.data());
-        file.getVar("wmu").getVar(wmus.data());
-        file.getVar("wphi").getVar(wphis.data());
-    }
+    std::string flxfpath = "/home/m/Mujkanovic.Max/ma/radiances/job_flx/mc.flx.spc.nc";
     
     std::vector<double> Edir;
     std::vector<double> Edown;
     Eigen::Vector3d sza_dir;
     double muEdir;
+    
+    read_flx( flxfpath, Edir, Edown, sza_dir, muEdir );
+   
 
-    {
-        using namespace netCDF;
-
-        NcFile file("/home/m/Mujkanovic.Max/ma/radiances/job_flx/mc.flx.spc.nc", NcFile::FileMode::read);
-        size_t Nx = file.getDim("x").getSize(); 
-        size_t Ny = file.getDim("y").getSize(); 
-        size_t Nz = file.getDim("z").getSize(); 
-        size_t Nwvl = file.getDim("wvl").getSize();
-
-        file.getAtt("mu0").getValues(&muEdir);
-        sza_dir = angleToVec(muEdir,270);
-//        std::cout << "sza_dir = " << sza_dir.transpose() << "\n";
-        Edir.resize(Nx*Ny*Nz*Nwvl);
-        Edown.resize(Nx*Ny*Nz*Nwvl);
-        file.getVar("Edir").getVar(Edir.data());
-        file.getVar("Edown").getVar(Edown.data());
-
-
-    }
-
-
-
-
+    std::string opfpath = "test.optical_properties.nc";
     std::vector<double> kext;
     std::vector<double> zlev;
     std::vector<double> w0,g1;
     size_t nlev, nlyr, nx, ny;
-
-    { 
-        using namespace netCDF;
-
-        NcFile file("test.optical_properties.nc", NcFile::FileMode::read);
-        nlev = file.getDim("nlev").getSize();
-        nlyr = file.getDim("caoth3d_0_wc_nlyr").getSize();
-        nx = file.getDim("caoth3d_0_wc_Nx").getSize();
-        ny = file.getDim("caoth3d_0_wc_Ny").getSize();
-
-        zlev.resize(nlev);
-        kext.resize(nlyr*nx*ny);
-        w0.resize(nlyr*nx*ny);
-        g1.resize(nlyr*nx*ny);
-        file.getVar("caoth3d_0_wc_ext").getVar(kext.data());
-        file.getVar("output_mc.z").getVar(zlev.data());
-        file.getVar("caoth3d_0_wc_ssa").getVar(w0.data());
-        file.getVar("caoth3d_0_wc_g1").getVar(g1.data());
-
-    }
+    
+    read_opprop( opfpath, kext, zlev, w0, g1, nlev, nlyr, nx, ny );
+    
     for(auto& ke: kext) {
         ke *= 1000;
     }
@@ -140,10 +88,14 @@ int main(int argc, char** argv) {
 
     //Main loop
     std::cout << "Starting ray tracing..." << "\n";
+    
     for(size_t i = 0; i < Nypixel; ++i) {
+        
         double ypx = (i + 0.5) / Nypixel;
         //for(size_t j = 0; j < 1; ++j) {
+        
         for(size_t j = 0; j < Nxpixel; ++j) {
+            
             double xpx = (j + 0.5) / Nxpixel;
             auto ray = cam.compute_ray(Eigen::Vector2d{xpx, ypx});
             //auto ray = Ray{loc, Eigen::Vector3d{0.5, 0, -1}.normalized()};
@@ -154,8 +106,11 @@ int main(int argc, char** argv) {
             double Ldirs = 0;
             double Ldiffs = 0;
             size_t groundidx;
+            
             for(auto slice: grid.walk_along(ray, 0., std::numeric_limits<double>::infinity())) {
+                
                 if(auto pvol = std::get_if<VolumeSlice>(&slice)) {
+                    
                     auto [x,y,z] = indexDecompose<3>(pvol->idx, {nx,ny,nlyr});
                     size_t optprop_index = indexRecompose(std::array{z,x,y},std::array{nlyr,nx,ny});
                     size_t rad_index = indexRecompose(std::array{x,y,z+1},std::array{nx,ny,nlyr+1});

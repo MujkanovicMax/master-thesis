@@ -8,6 +8,7 @@
 #include <numeric>
 #include <Eigen/Dense>
 #include <stdexcept>
+#include <string>
 
 template <size_t N>
 constexpr std::array<size_t,N> indexDecompose(size_t index, const std::array<size_t,N>& shape) {
@@ -191,4 +192,73 @@ std::array<double,3> calc_Ldiff(const Ray& ray, double tfar, double tnear, size_
     return std::array<double,3>{Lup + Ldown,Lup,Ldown}; 
 }
 
+void read_radiances( std::string fpath, std::vector<double>& radiances, std::vector<double>& mus, std::vector<double>& phis, std::vector<double>& wmus, std::vector<double>& wphis, size_t& nmu, size_t& nphi )
+    {
 
+        using namespace netCDF;
+
+        NcFile file(fpath, NcFile::FileMode::read);
+        
+        size_t nx = file.getDim("x").getSize();
+        size_t ny = file.getDim("y").getSize();
+        size_t nz = file.getDim("z").getSize();
+        nphi = file.getDim("phi").getSize();
+        nmu = file.getDim("mu").getSize();
+        size_t nwvl  = file.getDim("wvl").getSize();
+        std::cout << nx*ny*nz*nmu*nphi*nwvl << "\n";
+        radiances.resize(nx*ny*nz*nmu*nphi*nwvl);
+        mus.resize(nmu);
+        phis.resize(nphi);
+        wmus.resize(nmu);
+        wphis.resize(nphi);
+
+        file.getVar("radiance").getVar(radiances.data());
+        file.getVar("mu").getVar(mus.data());
+        file.getVar("phi").getVar(phis.data());
+        file.getVar("wmu").getVar(wmus.data());
+        file.getVar("wphi").getVar(wphis.data());
+
+    }
+
+void read_opprop( std::string fpath, std::vector<double>& kext, std::vector<double>& zlev, std::vector<double>& w0, std::vector<double>& g1, size_t& nlev, size_t& nlyr, size_t& nx, size_t& ny )
+    {
+
+        using namespace netCDF;
+
+        NcFile file(fpath, NcFile::FileMode::read);
+        nlev = file.getDim("nlev").getSize();
+        nlyr = file.getDim("caoth3d_0_wc_nlyr").getSize();
+        nx = file.getDim("caoth3d_0_wc_Nx").getSize();
+        ny = file.getDim("caoth3d_0_wc_Ny").getSize();
+
+        zlev.resize(nlev);
+        kext.resize(nlyr*nx*ny);
+        w0.resize(nlyr*nx*ny);
+        g1.resize(nlyr*nx*ny);
+        file.getVar("caoth3d_0_wc_ext").getVar(kext.data());
+        file.getVar("output_mc.z").getVar(zlev.data());
+        file.getVar("caoth3d_0_wc_ssa").getVar(w0.data());
+        file.getVar("caoth3d_0_wc_g1").getVar(g1.data());
+
+    }
+void read_flx( std::string fpath, std::vector<double>& Edir, std::vector<double>& Edown, Eigen::Vector3d& sza_dir, double& muEdir )
+    {
+   
+        using namespace netCDF;
+ 
+        NcFile file("/home/m/Mujkanovic.Max/ma/radiances/job_flx/mc.flx.spc.nc", NcFile::FileMode::read);
+        size_t Nx = file.getDim("x").getSize();
+        size_t Ny = file.getDim("y").getSize();
+        size_t Nz = file.getDim("z").getSize();
+        size_t Nwvl = file.getDim("wvl").getSize();
+
+        file.getAtt("mu0").getValues(&muEdir);
+        sza_dir = angleToVec(muEdir,270);
+ //        std::cout << "sza_dir = " << sza_dir.transpose() << "\n";
+        Edir.resize(Nx*Ny*Nz*Nwvl);
+        Edown.resize(Nx*Ny*Nz*Nwvl);
+        file.getVar("Edir").getVar(Edir.data());
+        file.getVar("Edown").getVar(Edown.data());
+ 
+    }   
+  
