@@ -100,6 +100,7 @@ std::vector<double> calcSubstreamDirs(const std::vector<double>& mus, const std:
 std::array<double,3> groundReflection_lambert(auto ray, size_t idx, double albedo, size_t nx, size_t ny, size_t nlyr, size_t nmu, size_t nphi, std::vector<double> mu, std::vector<double> wmu, std::vector<double> wphi, const std::vector<double>& Edir, const std::vector<double>& rad) {    
     double E_dir_ref = Edir[idx] * albedo / M_PI;
     auto [x,y,z] = indexDecompose(idx, std::array<size_t,3>{nx,ny,nlyr+1});  
+    //std::cout << Edir[idx] << "     " << x << "     " << y << "     " << z << "\n"; 
     double E_diff = 0;
     for(size_t i = 0; i<nmu; ++i) {
         for(size_t j = 0; j<nphi; ++j) {
@@ -178,10 +179,11 @@ std::array<double,3> calc_Ldiff(const Ray& ray, double tfar, double tnear, size_
                 pf = weight * calc_pHG(wmu_s, wmu_e, phi[j], wphi[j], ray, g1, nsub, substreams,i,j,nmu,nphi);
             }
             if(mu[i] < 0){
-                Ldown +=  rad[index_t] * pf;
+                Ldown +=  0.5 * rad[index_b] * pf;// + 0.5 * rad[index_b] * pf;
             }
             if(mu[i] > 0){
-                Lup += rad[index_b] * pf;
+                Lup += 0.5 * rad[index_b] * pf; //+ 0.5 * rad[index_t] * pf;
+
             //    std::cout << "rad = " << rad[index_b] << " muscatter = " << muscatter << " ray = "  << -ray.d.transpose() << " lvec = " << lvec.transpose() << " mu = " << mu[i] << "phi = "<< phi[j] << " pf ="  << pf << "\n";
             }
 
@@ -205,7 +207,7 @@ void read_radiances( std::string fpath, std::vector<double>& radiances, std::vec
         nphi = file.getDim("phi").getSize();
         nmu = file.getDim("mu").getSize();
         size_t nwvl  = file.getDim("wvl").getSize();
-        std::cout << nx*ny*nz*nmu*nphi*nwvl << "\n";
+        //std::cout << nx*ny*nz*nmu*nphi*nwvl << "\n";
         radiances.resize(nx*ny*nz*nmu*nphi*nwvl);
         mus.resize(nmu);
         phis.resize(nphi);
@@ -246,7 +248,7 @@ void read_flx( std::string fpath, std::vector<double>& Edir, std::vector<double>
    
         using namespace netCDF;
  
-        NcFile file("/home/m/Mujkanovic.Max/ma/radiances/job_flx/mc.flx.spc.nc", NcFile::FileMode::read);
+        NcFile file(fpath, NcFile::FileMode::read);
         size_t Nx = file.getDim("x").getSize();
         size_t Ny = file.getDim("y").getSize();
         size_t Nz = file.getDim("z").getSize();
