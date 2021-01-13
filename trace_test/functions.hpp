@@ -148,7 +148,7 @@ double calc_pHG(double wmu_s, double wmu_e, double phi, double wphi, const Ray& 
     return pf/(n*n);
 }
 
-std::array<double,3> calc_Ldiff(const Ray& ray, double tfar, double tnear, size_t idx, double g1, size_t nx, size_t ny, size_t nlyr, size_t nmu, size_t nphi,
+std::array<double,3> calc_Ldiff(const Ray& ray, double dx, double dy, std::vector<double>& zlev,double tfar, double tnear, size_t idx, double kext, double dtau, double g1, size_t nx, size_t ny, size_t nlyr, size_t nmu, size_t nphi,
         const std::vector<double>& mu, const std::vector<double>& phi, const std::vector<double>& wmu, const std::vector<double>& wphi, const std::vector<double>& rad, 
         const std::vector<double>& streams, size_t nsub, const std::vector<double>& substreams) {
     double Lup = 0;
@@ -157,6 +157,58 @@ std::array<double,3> calc_Ldiff(const Ray& ray, double tfar, double tnear, size_
     double wmu_s = -1;
     double wmu_e,wphi_e;
     double pf;
+    double tau_thres = 1;
+    double alpha, beta;
+
+    if(kext == 0){
+        alpha = 0.5;
+        beta = 0.5;
+    }
+
+    else{
+        double dist = tau_thres/kext;
+        Eigen::Vector3d P = ray(tnear + dist);
+        double l1 = (x+0.5)*dx;
+        double l2 = (y+0.5)*dy;
+        double l3 = zlev[z];
+        double u3 = zlev[z+1];
+        double pu = (P[0]-l1)*(P[0]-l1) + (P[1]-l2)*(P[1]-l2) + (P[2]-u3)*(P[2]-u3);
+        double pl = (P[0]-l1)*(P[0]-l1) + (P[1]-l2)*(P[1]-l2) + (P[2]-l3)*(P[2]-l3);
+        pu *= pu*pu;
+        pl *= pl*pl;
+        alpha =  1-pu/(pl+pu);
+        beta = 1 - alpha;
+    }
+    //double alpha = 1;
+    //if(dtau > tau_thres){
+    //    double d = (tau_thres/dtau)*(tfar - tnear);
+    //    double l1 = (x+0.5)*dx;
+    //    double l2 = (y+0.5)*dy;
+    //    double l3 = zlev[z];
+    //    double u3 = zlev[z+1];
+    //    Eigen::Vector3d e1;
+    //    e1[0] = 1;
+    //    e1[1] = 0;
+    //    e1[2] = 0;
+    //    double rayangle = (ray.d).dot(e1);
+    //    double p1 = l1 - d*std::sin(rayangle);
+    //    double p2 = l2;
+    //    double p3 = u3 - d*std::cos(rayangle);
+
+    //    double pu = std::sqrt((p1-l1)*(p1-l1) + (p2-l2)*(p2-l2) + (p3-u3)*(p3-u3));
+    //    double pl = std::sqrt((p1-l1)*(p1-l1) + (p2-l2)*(p2-l2) + (p3-l3)*(p3-l3));
+    //    alpha =  1-pu/(pl+pu); //1/(1+(1/std::exp(0.5*dtau))); //std::min(dtau, dtau_max)/dtau_max; 
+    //}
+    
+    //double beta = 1 - alpha;
+    //std::cout << "dtau = " <<dtau << "   alpha = " << alpha << "   beta = " << beta << "\n";
+    
+    if(ray.d[2] > 0){
+
+        alpha = 1 - alpha;
+        beta = 1 - alpha;
+
+    }
 
     for(size_t i = 0; i < nmu; ++i) {
         wmu_e = wmu_s + wmu[i];
@@ -172,20 +224,22 @@ std::array<double,3> calc_Ldiff(const Ray& ray, double tfar, double tnear, size_
             double weight = wmu[i] * wphi[j];
             size_t index_t = indexRecompose(std::array<size_t,5>{x,y,z+1,i,j},std::array<size_t,5>{nx,ny,nlyr+1,nmu,nphi});
             size_t index_b = indexRecompose(std::array<size_t,5>{x,y,z,i,j},std::array<size_t,5>{nx,ny,nlyr+1,nmu,nphi});
+            
             if(0==0){
                 pf = weight * phase_HG(g1, muscatter);
             }
             else{
                 pf = weight * calc_pHG(wmu_s, wmu_e, phi[j], wphi[j], ray, g1, nsub, substreams,i,j,nmu,nphi);
             }
+
+            
             if(mu[i] < 0){
-                Ldown +=  0.5 * rad[index_b] * pf;// + 0.5 * rad[index_b] * pf;
+                Ldown += alpha * rad[index_t] * pf  + beta * rad[index_b] * pf;
             }
             if(mu[i] > 0){
-                Lup += 0.5 * rad[index_b] * pf; //+ 0.5 * rad[index_t] * pf;
-
-            //    std::cout << "rad = " << rad[index_b] << " muscatter = " << muscatter << " ray = "  << -ray.d.transpose() << " lvec = " << lvec.transpose() << " mu = " << mu[i] << "phi = "<< phi[j] << " pf ="  << pf << "\n";
+                Lup += alpha * rad[index_t] * pf + beta * rad[index_b] * pf;
             }
+
 
         }
         wmu_s = wmu_e;

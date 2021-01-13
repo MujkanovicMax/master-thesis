@@ -14,16 +14,17 @@
 int main(int argc, char** argv) {
     //for(int xg = 2; xg <= 64; xg = 2*xg){
       //  std::cout << "nmu = " << MU << "\n";
-        for(int zdiv = 0; zdiv <=5; ++zdiv){
+        //for(int zdiv = 0; zdiv <=5; ++zdiv){
         //std::cout << "nphi = " << PHI << "\n\n";
     //int zdiv = 1;
     int divs[6] {1,2,5,10,25,50};
     std::cout << "Reading netcdf data" << "\n";
     //Reading in netcdf data
     //std::string radfpath = "/home/m/Mujkanovic.Max/ma/radiances/radiances_mu" + std::to_string(MU) + "_phi" + std::to_string(PHI) + ".nc";
-    std::string radfpath = "rad_levels_div" + std::to_string(divs[zdiv]) + ".nc";
+    //std::string radfpath = "rad_levels_div" + std::to_string(divs[zdiv]) + ".nc";
     //std::string radfpath = "../radiances/radiances_mu32_phi32.nc";
-    
+    std::string radfpath = "../radiances/rad_philipp_16x16.nc";
+
     std::cout << "radfpath = " << radfpath << "\n\n";
     std::vector<double> radiances;
     std::vector<double> mus;
@@ -36,7 +37,8 @@ int main(int argc, char** argv) {
    
 
    // std::string flxfpath = "/home/m/Mujkanovic.Max/ma/radiances/job_flx/mc.flx.spc.nc";
-    std::string flxfpath = "flx_levels_div" + std::to_string(divs[zdiv]) + ".nc";
+    //std::string flxfpath = "flx_levels_div" + std::to_string(divs[zdiv]) + ".nc";
+    std::string flxfpath = "../radiances/flx_philipp_16x16.nc";
     std::cout << "flxfpath = " << flxfpath << "\n\n";
     std::vector<double> Edir;
     std::vector<double> Edown;
@@ -46,9 +48,10 @@ int main(int argc, char** argv) {
     read_flx( flxfpath, Edir, Edown, sza_dir, muEdir );
    
 
-    std::string opfpath = "op_levels_div" + std::to_string(divs[zdiv]) + ".nc";
+    //std::string opfpath = "op_levels_div" + std::to_string(divs[zdiv]) + ".nc";
     //std::string opfpath = "test.optical_properties.nc";
-    
+    std::string opfpath = "../radiances/opprop_philipp_16x16.nc";
+
     std::cout << "opfpath = " << opfpath << "\n\n";
     std::vector<double> kext;
     std::vector<double> zlev;
@@ -73,13 +76,13 @@ int main(int argc, char** argv) {
 
     // Camera parameters and camera declaration
     size_t Nxpixel = 90;
-    size_t Nypixel = 1;
+    size_t Nypixel = 90;
     double fov = 2;
-    auto loc = Eigen::Vector3d{4,0.01,2};
+    auto loc = Eigen::Vector3d{4,0.01,2};     //def  Eigen::Vector3d{4,0.01,2}
     double fovx = fov;
     double fovy = fov * Nxpixel / Nypixel;
     size_t rays = 90;
-    auto cam = MysticPanoramaCamera(loc, 0, 0, -45, 45, 90, 90, 90); //def: 0,0,-45,45,90,90,90
+    auto cam = MysticPanoramaCamera(loc, 0, 0, -45, 45, 60, 120, 90); //def: 0,0,-45,45,90,90,90
 
     // Stream and substream calculations
     size_t nsub = 10;
@@ -108,7 +111,7 @@ int main(int argc, char** argv) {
         //for(size_t j = 0; j < 1; ++j) {
         
         for(size_t j = 0; j < Nxpixel; ++j) {
-            
+            //std::cout << "ray " << j << "\n";
             double xpx = (j + 0.5) / Nxpixel;
             
             auto ray = cam.compute_ray(Eigen::Vector2d{xpx, ypx});
@@ -129,6 +132,7 @@ int main(int argc, char** argv) {
                     
                     //index calculations ( 3D -> 1D, 1D -> 3D )
                     auto [x,y,z] = indexDecompose<3>(pvol->idx, {nx,ny,nlyr});
+                    //std::cout << "x = " << x << "   y = " << y << "     z = " << z << "\n";
                     size_t optprop_index = indexRecompose(std::array{z,x,y},std::array{nlyr,nx,ny});
                     size_t rad_index = indexRecompose(std::array{x,y,z+1},std::array{nx,ny,nlyr+1});
                     groundidx = indexRecompose(std::array{x,y,z},std::array{nx,ny,nlyr+1});
@@ -140,9 +144,11 @@ int main(int argc, char** argv) {
                     double dtau = (pvol->tfar - pvol->tnear) * kext[optprop_index];
                     optical_thickness += dtau;
                     double phase_function = phase_HG(g1[optprop_index], (-ray.d).dot(sza_dir.normalized()));
-                    auto [Lup_Plus_Ldown, Lup, Ldown] = calc_Ldiff(ray,pvol->tfar, pvol->tnear, pvol->idx, g1[optprop_index],\
+                    //std::cout << "dtau = " << dtau << "\n";
+                    auto [Lup_Plus_Ldown, Lup, Ldown] = calc_Ldiff(ray, dx, dy, zlev, pvol->tfar, pvol->tnear, pvol->idx, kext[optprop_index], dtau, g1[optprop_index],\
                                        nx, ny, nlyr, nmu, nphi, mus, phis, wmus, wphis, radiances, streams, nsub, substreams);
                     double scatter_prob = 1 - exp(-dtau*w0[optprop_index]);
+                    //std::cout << " Ldiff = " << Lup + Ldown << "   Lup = " << Lup << "   Ldown = " << Ldown << "\n";
                     //std::cout << " Lup = " << Lup << " Lup_sum = " << Lups <<" transm = "<< transmission << " w0 = "\
                             << w0[optprop_index] << " dtau = " << dtau  << " scatter_prob = " << scatter_prob << "\n";
                     
@@ -185,7 +191,8 @@ int main(int argc, char** argv) {
     {
         using namespace netCDF;    
         //NcFile file("output_mu" + std::to_string(MU) + "_phi" + std::to_string(PHI) +  ".nc", NcFile::FileMode::replace);
-        NcFile file("output_levels_div" + std::to_string(divs[zdiv]) + "method4.nc", NcFile::FileMode::replace);
+        //NcFile file("output_levels_div" + std::to_string(divs[zdiv]) + "method5.nc", NcFile::FileMode::replace);
+        NcFile file("output_philipp.nc", NcFile::FileMode::replace);
         auto xdim = file.addDim("x", Nxpixel);
         auto ydim = file.addDim("y", Nypixel);
         file.addVar("image", NcType::nc_DOUBLE, {ydim, xdim}).putVar(image.data());
@@ -201,7 +208,7 @@ int main(int argc, char** argv) {
     }
     
     //}
-        }
+       // }
 
 
 }

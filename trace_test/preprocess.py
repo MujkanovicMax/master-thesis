@@ -1,13 +1,6 @@
 import xarray as xr
 import numpy as np
 
-
-
-
-
-
-
-
 def cutoff_x(ds, radkey, xkey, op, flx, outpath=None):
     rads = ds[radkey]
     l = np.floor(np.log2(rads.shape[0]))
@@ -166,60 +159,80 @@ def half_grid(ds, radkey, xkey, op, flx, outpath=None):
 def half_mu(ds, radkey, mukey, outpath=None):
 
     rads = ds[radkey]
+    mu = ds[mukey]
+    wmu = ds["wmu"]
     rads_1 = rads[:,:,:,:,::2,:]
     rads_2 = rads[:,:,:,:,1::2,:]
     rads = rads[:,:,:,:,::2,:]
-    rads.values = (rads_1.values + rads_2.values)/2
-    rads[mukey].values = (rads_1[mukey].values + rads_2[mukey].values)/2
-    rads["wmu"].values = (rads_1["wmu"].values + rads_2["wmu"].values)
+    tmp_rads = (rads_1.values + rads_2.values)/2
+    #print(rads.shape)
+    tmp = (mu[::2].values + mu[1::2].values)/2
+    mu = tmp*1
+    tmp = wmu[::2].values + wmu[1::2].values
+    wmu = tmp*1
 
-    out = ds.drop(radkey)
-    out[mukey] = rads[mukey]
-    out["wmu"] = rads["wmu"]
-    out[radkey] = rads
+    out = ds.drop_dims(mukey)
+    out[mukey] = mu
+    out["wmu"] = wmu
+    #print(rads.shape)
+    #print(out[mukey].shape, out["wmu"].shape)
+    out[radkey] = xr.DataArray(tmp_rads, dims=("x", "y", "z", "wvl", "mu", "phi"))
     if outpath != None:
         out.to_netcdf(outpath)
+    #return out
     return out
 
-def half_phi(ds, radkey, mukey, outpath=None):
-    
+
+def half_phi(ds, radkey, phikey, outpath=None):
+
     rads = ds[radkey]
+    phi = ds[phikey]
+    wphi = ds["wphi"]
     rads_1 = rads[:,:,:,:,:,::2]
     rads_2 = rads[:,:,:,:,:,1::2]
     rads = rads[:,:,:,:,:,::2]
-    rads.values = (rads_1.values + rads_2.values)/2
-    rads[mukey].values = (rads_1[mukey].values + rads_2[mukey].values)/2
-    rads["wphi"].values = (rads_1["wphi"].values + rads_2["wphi"].values)
+    tmp_rads = (rads_1.values + rads_2.values)/2
+    #print(rads.shape)
+    tmp = (phi[::2].values + phi[1::2].values)/2
+    phi = tmp*1
+    tmp = wphi[::2].values + wphi[1::2].values
+    wphi = tmp*1
 
-    out = ds.drop(radkey)
-    out[mukey] = rads[mukey]
-    out["wphi"] = rads["wphi"]
-    out[radkey] = rads
-    
-    
+    out = ds.drop_dims(mukey)
+    out[phikey] = mu
+    out["wphi"] = wmu
+    #print(rads.shape)
+    #print(out[mukey].shape, out["wmu"].shape)
+    out[radkey] = xr.DataArray(tmp_rads, dims=("x", "y", "z", "wvl", "mu", "phi"))
     if outpath != None:
         out.to_netcdf(outpath)
+    #return out
     return out
 
 
-    
+
+   
 
 
 
+
+#rad = xr.open_dataset("../radiances/radiances_mu32_phi32.nc")
+#op = xr.open_dataset("test.optical_properties.nc")
+#flx = xr.open_dataset("../radiances/job_flx/mc.flx.spc.nc")
+#rad = rad.load()
+#
+#rkey = "radiance"
+#
+#for div in [1,2,5,10,25,50]:
+#
+#    out_rad, out_op, out_flx = half_levels(rad,rkey,"z",op,flx,div)
+#    out_rad.to_netcdf("rad_levels_div" + str(int(div)) + ".nc")
+#    out_op.to_netcdf("op_levels_div" + str(int(div)) + ".nc")
+#    out_flx.to_netcdf("flx_levels_div" + str(int(div)) + ".nc")
 
 rad = xr.open_dataset("../radiances/radiances_mu32_phi32.nc")
-op = xr.open_dataset("test.optical_properties.nc")
-flx = xr.open_dataset("../radiances/job_flx/mc.flx.spc.nc")
-rad = rad.load()
+test = half_mu(rad, "radiance", "mu")
 
-rkey = "radiance"
-
-for div in [1,2,5,10,25,50]:
-
-    out_rad, out_op, out_flx = half_levels(rad,rkey,"z",op,flx,div)
-    out_rad.to_netcdf("rad_levels_div" + str(int(div)) + ".nc")
-    out_op.to_netcdf("op_levels_div" + str(int(div)) + ".nc")
-    out_flx.to_netcdf("flx_levels_div" + str(int(div)) + ".nc")
 
 
 
