@@ -209,7 +209,10 @@ std::array<double,3> calc_Ldiff(const Ray& ray, double dx, double dy, std::vecto
         beta = 1 - alpha;
 
     }
+    //tmp stuff
+    double sum_pf = 0;
 
+    //
     for(size_t i = 0; i < nmu; ++i) {
         wmu_e = wmu_s + wmu[i];
         for(size_t j = 0; j < nphi; ++j) {
@@ -222,21 +225,24 @@ std::array<double,3> calc_Ldiff(const Ray& ray, double dx, double dy, std::vecto
 
             auto muscatter = (-ray.d).dot(lvec); 
             double weight = wmu[i] * wphi[j];
+            //std::cout << " x=" <<  x << " y=" << y << " z= " << z << " imu= " << i << " iphi= " << j << "\n";
             size_t index_t = indexRecompose(std::array<size_t,5>{x,y,z+1,i,j},std::array<size_t,5>{nx,ny,nlyr+1,nmu,nphi});
             size_t index_b = indexRecompose(std::array<size_t,5>{x,y,z,i,j},std::array<size_t,5>{nx,ny,nlyr+1,nmu,nphi});
             
-            if(0==0){
-                pf = weight * phase_HG(g1, muscatter);
+            if(1==0){
+                pf = weight * phase_HG(0, muscatter); //g1!!!!!!!!!
+                sum_pf += pf;
+                std::cout << "muscatter = " << muscatter << "\n";
             }
             else{
                 pf = weight * calc_pHG(wmu_s, wmu_e, phi[j], wphi[j], ray, g1, nsub, substreams,i,j,nmu,nphi);
             }
-
+            //std::cout << "rad oben: " << rad[index_t] << "   rad unten: " << rad[index_b] << "  pf =  " << pf << "   alpha= " << alpha << "     beta = " << beta << "\n"; 
             
             if(mu[i] < 0){
                 Ldown += alpha * rad[index_t] * pf  + beta * rad[index_b] * pf;
             }
-            if(mu[i] > 0){
+            else{
                 Lup += alpha * rad[index_t] * pf + beta * rad[index_b] * pf;
             }
 
@@ -244,7 +250,7 @@ std::array<double,3> calc_Ldiff(const Ray& ray, double dx, double dy, std::vecto
         }
         wmu_s = wmu_e;
     }
-    
+    std::cout << "Lup = " << Lup << "   Ldown = " << Ldown << "     sum pf = " << sum_pf << " x y z " << x << y << z << "\n"; 
     return std::array<double,3>{Lup + Ldown,Lup,Ldown}; 
 }
 

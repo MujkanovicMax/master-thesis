@@ -198,9 +198,9 @@ def half_phi(ds, radkey, phikey, outpath=None):
     tmp = wphi[::2].values + wphi[1::2].values
     wphi = tmp*1
 
-    out = ds.drop_dims(mukey)
-    out[phikey] = mu
-    out["wphi"] = wmu
+    out = ds.drop_dims(phikey)
+    out[phikey] = phi
+    out["wphi"] = wphi
     #print(rads.shape)
     #print(out[mukey].shape, out["wmu"].shape)
     out[radkey] = xr.DataArray(tmp_rads, dims=("x", "y", "z", "wvl", "mu", "phi"))
@@ -230,8 +230,16 @@ def half_phi(ds, radkey, phikey, outpath=None):
 #    out_op.to_netcdf("op_levels_div" + str(int(div)) + ".nc")
 #    out_flx.to_netcdf("flx_levels_div" + str(int(div)) + ".nc")
 
-rad = xr.open_dataset("../radiances/radiances_mu32_phi32.nc")
-test = half_mu(rad, "radiance", "mu")
+rad_org = xr.open_dataset("rad_mu_2.nc")
+
+rad_mu_phi = rad_org
+#rad_phi = rad_org
+#rad_mu.to_netcdf("rad_mu_32.nc")
+#rad_phi.to_netcdf("rad_phi_32.nc")
+for i in range(5):
+    rad_mu_phi = half_phi(rad_mu_phi,"radiance", "phi")
+    rad_mu_phi.to_netcdf("rad_mu_2_phi_" + str(32//int(pow(2,i+1))) + ".nc")
+
 
 
 

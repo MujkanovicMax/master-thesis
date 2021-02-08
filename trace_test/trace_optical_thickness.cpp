@@ -14,16 +14,18 @@
 int main(int argc, char** argv) {
     //for(int xg = 2; xg <= 64; xg = 2*xg){
       //  std::cout << "nmu = " << MU << "\n";
-        //for(int zdiv = 0; zdiv <=5; ++zdiv){
+        for(int zdiv = 0; zdiv <=0; ++zdiv){
         //std::cout << "nphi = " << PHI << "\n\n";
     //int zdiv = 1;
-    int divs[6] {1,2,5,10,25,50};
+    //int divs[6] {1,2,5,10,25,50}; // for level benchmark
+    //int divs[6] {32,16,8,4,2,1}; // for radiance samples benchmark
+    int divs[1] {2};
     std::cout << "Reading netcdf data" << "\n";
     //Reading in netcdf data
     //std::string radfpath = "/home/m/Mujkanovic.Max/ma/radiances/radiances_mu" + std::to_string(MU) + "_phi" + std::to_string(PHI) + ".nc";
-    //std::string radfpath = "rad_levels_div" + std::to_string(divs[zdiv]) + ".nc";
+    std::string radfpath = "rad_mu_" + std::to_string(divs[zdiv]) + ".nc";
     //std::string radfpath = "../radiances/radiances_mu32_phi32.nc";
-    std::string radfpath = "../radiances/rad_philipp_16x16.nc";
+    //std::string radfpath = "../radiances/rad_philipp_16x16.nc";
 
     std::cout << "radfpath = " << radfpath << "\n\n";
     std::vector<double> radiances;
@@ -36,9 +38,9 @@ int main(int argc, char** argv) {
     read_radiances(radfpath, radiances, mus, phis, wmus, wphis,  nmu, nphi);
    
 
-   // std::string flxfpath = "/home/m/Mujkanovic.Max/ma/radiances/job_flx/mc.flx.spc.nc";
+    std::string flxfpath = "/home/m/Mujkanovic.Max/ma/radiances/job_flx/mc.flx.spc.nc";
     //std::string flxfpath = "flx_levels_div" + std::to_string(divs[zdiv]) + ".nc";
-    std::string flxfpath = "../radiances/flx_philipp_16x16.nc";
+    //std::string flxfpath = "../radiances/flx_philipp_16x16.nc";
     std::cout << "flxfpath = " << flxfpath << "\n\n";
     std::vector<double> Edir;
     std::vector<double> Edown;
@@ -49,8 +51,8 @@ int main(int argc, char** argv) {
    
 
     //std::string opfpath = "op_levels_div" + std::to_string(divs[zdiv]) + ".nc";
-    //std::string opfpath = "test.optical_properties.nc";
-    std::string opfpath = "../radiances/opprop_philipp_16x16.nc";
+    std::string opfpath = "test.optical_properties.nc";
+    //std::string opfpath = "../radiances/opprop_philipp_16x16.nc";
 
     std::cout << "opfpath = " << opfpath << "\n\n";
     std::vector<double> kext;
@@ -72,20 +74,20 @@ int main(int argc, char** argv) {
     double albedo = 0.2;
     auto mgrid = rayli::vgrid::MysticCloud(dx, dy, nx, ny, zlev);
     auto grid = rayli::vgrid::Cyclic(mgrid, {{0, 0, -std::numeric_limits<double>::infinity()},{nx*dx, ny*dy, std::numeric_limits<double>::infinity()}});
-    std::cout << "\nGrid parameters:\n" << "dx = "  << dx << " dy = " << dy << " nx = " << nx << " ny = " << ny << " nlyr = " << nlyr << " nlev = " << nlev <<"\n\n";
+    std::cout << "\nGrid parameters:\n" << "dx = "  << dx << " dy = " << dy << " nx = " << nx << " ny = " << ny << " nlyr = " << nlyr << " nlev = " << nlev << " nmu = " << nmu << " nphi = " << nphi <<"\n\n";
 
     // Camera parameters and camera declaration
     size_t Nxpixel = 90;
-    size_t Nypixel = 90;
+    size_t Nypixel = 1;
     double fov = 2;
     auto loc = Eigen::Vector3d{4,0.01,2};     //def  Eigen::Vector3d{4,0.01,2}
     double fovx = fov;
     double fovy = fov * Nxpixel / Nypixel;
     size_t rays = 90;
-    auto cam = MysticPanoramaCamera(loc, 0, 0, -45, 45, 60, 120, 90); //def: 0,0,-45,45,90,90,90
+    auto cam = MysticPanoramaCamera(loc, 0, 0, -45, 45, 90, 90, rays); //def: 0,0,-45,45,90,90,90
 
     // Stream and substream calculations
-    size_t nsub = 10;
+    size_t nsub = 500;
     std::vector<double> streams = calcStreamDirs(mus,phis,nmu,nphi);
     std::vector<double> substreams = calcSubstreamDirs(mus,phis,wmus,wphis,nmu,nphi,nsub);
     
@@ -101,7 +103,7 @@ int main(int argc, char** argv) {
     std::vector<double> gRdiff_i(Nxpixel * Nypixel);
     
     //Loop variables
-
+    size_t a,b,c;
     //Main loop
     std::cout << "Starting ray tracing..." << "\n";
     
@@ -115,8 +117,8 @@ int main(int argc, char** argv) {
             double xpx = (j + 0.5) / Nxpixel;
             
             auto ray = cam.compute_ray(Eigen::Vector2d{xpx, ypx});
-            //auto ray = Ray{loc, Eigen::Vector3d{0.5, 0, -1}.normalized()};
-            
+            //auto ray = Ray{loc, Eigen::Vector3d{-0.700909264299851,1.82977702939428e-16,-0.713250449154182}.normalized()};
+            //auto ray = Ray{loc, Eigen::Vector3d{-0.0610485395348568,1.6787439687354e-16,-0.998134798421867}.normalized()};
             //sum zeroing
             double optical_thickness = 0;
             double radiance = 0;
@@ -125,13 +127,16 @@ int main(int argc, char** argv) {
             double Ldirs = 0;
             double Ldiffs = 0;
             size_t groundidx;
-            
+
             for(auto slice: grid.walk_along(ray, 0., std::numeric_limits<double>::infinity())) {
                 
                 if(auto pvol = std::get_if<VolumeSlice>(&slice)) {
                     
                     //index calculations ( 3D -> 1D, 1D -> 3D )
                     auto [x,y,z] = indexDecompose<3>(pvol->idx, {nx,ny,nlyr});
+                    a = x;
+                    b = y;
+                    c = z;
                     //std::cout << "x = " << x << "   y = " << y << "     z = " << z << "\n";
                     size_t optprop_index = indexRecompose(std::array{z,x,y},std::array{nlyr,nx,ny});
                     size_t rad_index = indexRecompose(std::array{x,y,z+1},std::array{nx,ny,nlyr+1});
@@ -169,6 +174,8 @@ int main(int argc, char** argv) {
             auto [gR, gRdir, gRdiff] = groundReflection_lambert(ray,groundidx,albedo, nx, ny, nlyr, nmu, nphi, mus, wmus, wphis, Edir, radiances); 
             double ground_E = gR *  exp(-optical_thickness);            
             
+            std::cout << "Search Index x= " << a << " y= " << b << " z= " << "  RAY = " << ray <<"\n";
+            
             //writing pixelvalues to image
             image[j + i * Nxpixel]      = radiance + ground_E;
             opthick_image[j+i*Nxpixel]  = optical_thickness;
@@ -179,7 +186,7 @@ int main(int argc, char** argv) {
             groundbox[j+i*Nxpixel]      = indexDecompose<3>(groundidx,std::array<size_t,3>{nx,ny,nlyr})[0];
             gRdir_i[j+i*Nxpixel]        = gRdir * exp(-optical_thickness);
             gRdiff_i[j+i*Nxpixel]       = gRdiff * exp(-optical_thickness);
-
+            std::cout << "image val = " << image[j + i * Nxpixel] << "  Ldiff = " << Ldiff_i[j+i*Nxpixel] << "  Lup = " << Lup_i[j+i*Nxpixel] << "  Ldown = " << Ldown_i[j+i*Nxpixel] << "  Ldir = " << Ldir_i[j+i*Nxpixel] << "\n";
            
 //            std::cout << "Pixel " << j+1 << " done" << "  ival = " << image[j+i*Nxpixel] << " "\
                 <<  Ldiff_i[j+i*Nxpixel] << " "  << Lup_i[j+i*Nxpixel] << " " << Ldown_i[j+i*Nxpixel]<< " " << Ldir_i[j+i*Nxpixel] <<"\n";
@@ -191,8 +198,8 @@ int main(int argc, char** argv) {
     {
         using namespace netCDF;    
         //NcFile file("output_mu" + std::to_string(MU) + "_phi" + std::to_string(PHI) +  ".nc", NcFile::FileMode::replace);
-        //NcFile file("output_levels_div" + std::to_string(divs[zdiv]) + "method5.nc", NcFile::FileMode::replace);
-        NcFile file("output_philipp.nc", NcFile::FileMode::replace);
+        NcFile file("output_mu_" + std::to_string(divs[zdiv]) + ".nc", NcFile::FileMode::replace);
+        //NcFile file("output_philipp.nc", NcFile::FileMode::replace);
         auto xdim = file.addDim("x", Nxpixel);
         auto ydim = file.addDim("y", Nypixel);
         file.addVar("image", NcType::nc_DOUBLE, {ydim, xdim}).putVar(image.data());
@@ -208,7 +215,7 @@ int main(int argc, char** argv) {
     }
     
     //}
-       // }
+       }
 
 
 }
