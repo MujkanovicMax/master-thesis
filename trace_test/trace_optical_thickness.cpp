@@ -14,17 +14,19 @@
 int main(int argc, char** argv) {
     //for(int xg = 2; xg <= 64; xg = 2*xg){
       //  std::cout << "nmu = " << MU << "\n";
-        for(int zdiv = 0; zdiv <=0; ++zdiv){
-        //std::cout << "nphi = " << PHI << "\n\n";
+        for(int zdiv = 0; zdiv <= 5; ++zdiv){
+        for(int adiv = 0; adiv <= 0; ++adiv){
+            //std::cout << "nphi = " << PHI << "\n\n";
     //int zdiv = 1;
-    //int divs[6] {1,2,5,10,25,50}; // for level benchmark
-    //int divs[6] {32,16,8,4,2,1}; // for radiance samples benchmark
-    int divs[1] {2};
+    int zdivs[6] {1,2,5,10,25,50}; // for level benchmark
+    int adivs[6] {32,16,8,4,2,1}; // for radiance samples benchmark
+    //int divs[1] {2};
     std::cout << "Reading netcdf data" << "\n";
     //Reading in netcdf data
     //std::string radfpath = "/home/m/Mujkanovic.Max/ma/radiances/radiances_mu" + std::to_string(MU) + "_phi" + std::to_string(PHI) + ".nc";
-    std::string radfpath = "rad_mu_" + std::to_string(divs[zdiv]) + ".nc";
-    //std::string radfpath = "../radiances/radiances_mu32_phi32.nc";
+    //std::string radfpath = "rad_zdiv" + std::to_string(zdivs[zdiv])  + "_mu_" + std::to_string(adivs[adiv])  + "_phi_" + std::to_string(adivs[adiv]) + ".nc";
+    std::string radfpath = "irr_from32x32_myst_zdiv" + std::to_string(zdivs[zdiv])  + ".nc";
+    //std::string radfpath = "irr_from_10s_right_order.nc";
     //std::string radfpath = "../radiances/rad_philipp_16x16.nc";
 
     std::cout << "radfpath = " << radfpath << "\n\n";
@@ -38,8 +40,8 @@ int main(int argc, char** argv) {
     read_radiances(radfpath, radiances, mus, phis, wmus, wphis,  nmu, nphi);
    
 
-    std::string flxfpath = "/home/m/Mujkanovic.Max/ma/radiances/job_flx/mc.flx.spc.nc";
-    //std::string flxfpath = "flx_levels_div" + std::to_string(divs[zdiv]) + ".nc";
+    //std::string flxfpath = "/home/m/Mujkanovic.Max/ma/radiances/job_flx/mc.flx.spc.nc";
+    std::string flxfpath = "flx_levels_div" + std::to_string(zdivs[zdiv]) + ".nc";
     //std::string flxfpath = "../radiances/flx_philipp_16x16.nc";
     std::cout << "flxfpath = " << flxfpath << "\n\n";
     std::vector<double> Edir;
@@ -50,8 +52,8 @@ int main(int argc, char** argv) {
     read_flx( flxfpath, Edir, Edown, sza_dir, muEdir );
    
 
-    //std::string opfpath = "op_levels_div" + std::to_string(divs[zdiv]) + ".nc";
-    std::string opfpath = "test.optical_properties.nc";
+    std::string opfpath = "op_levels_div" + std::to_string(zdivs[zdiv]) + ".nc";
+    //std::string opfpath = "test.optical_properties.nc";
     //std::string opfpath = "../radiances/opprop_philipp_16x16.nc";
 
     std::cout << "opfpath = " << opfpath << "\n\n";
@@ -87,7 +89,7 @@ int main(int argc, char** argv) {
     auto cam = MysticPanoramaCamera(loc, 0, 0, -45, 45, 90, 90, rays); //def: 0,0,-45,45,90,90,90
 
     // Stream and substream calculations
-    size_t nsub = 500;
+    size_t nsub = 50;
     std::vector<double> streams = calcStreamDirs(mus,phis,nmu,nphi);
     std::vector<double> substreams = calcSubstreamDirs(mus,phis,wmus,wphis,nmu,nphi,nsub);
     
@@ -174,7 +176,7 @@ int main(int argc, char** argv) {
             auto [gR, gRdir, gRdiff] = groundReflection_lambert(ray,groundidx,albedo, nx, ny, nlyr, nmu, nphi, mus, wmus, wphis, Edir, radiances); 
             double ground_E = gR *  exp(-optical_thickness);            
             
-            std::cout << "Search Index x= " << a << " y= " << b << " z= " << "  RAY = " << ray <<"\n";
+            //std::cout << "Search Index x= " << a << " y= " << b << " z= " << "  RAY = " << ray <<"\n";
             
             //writing pixelvalues to image
             image[j + i * Nxpixel]      = radiance + ground_E;
@@ -198,8 +200,9 @@ int main(int argc, char** argv) {
     {
         using namespace netCDF;    
         //NcFile file("output_mu" + std::to_string(MU) + "_phi" + std::to_string(PHI) +  ".nc", NcFile::FileMode::replace);
-        NcFile file("output_mu_" + std::to_string(divs[zdiv]) + ".nc", NcFile::FileMode::replace);
-        //NcFile file("output_philipp.nc", NcFile::FileMode::replace);
+        //NcFile file("output_zdiv" + std::to_string(zdivs[zdiv])  + "_mu_" + std::to_string(adivs[adiv])  + "_phi_" + std::to_string(adivs[adiv]) + ".nc", NcFile::FileMode::replace);
+        NcFile file("output_irr_from32x32_myst_zdiv" + std::to_string(zdivs[zdiv])  + ".nc", NcFile::FileMode::replace);
+        //NcFile file("output_irr_from_.nc", NcFile::FileMode::replace);
         auto xdim = file.addDim("x", Nxpixel);
         auto ydim = file.addDim("y", Nypixel);
         file.addVar("image", NcType::nc_DOUBLE, {ydim, xdim}).putVar(image.data());
@@ -214,7 +217,7 @@ int main(int argc, char** argv) {
 
     }
     
-    //}
+    }
        }
 
 

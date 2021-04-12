@@ -216,31 +216,38 @@ def half_phi(ds, radkey, phikey, outpath=None):
 
 
 
-#rad = xr.open_dataset("../radiances/radiances_mu32_phi32.nc")
-#op = xr.open_dataset("test.optical_properties.nc")
-#flx = xr.open_dataset("../radiances/job_flx/mc.flx.spc.nc")
+rad =xr.open_dataset("irr_from32x32_myst.nc")
+op = xr.open_dataset("test.optical_properties.nc")
+flx = xr.open_dataset("../radiances/job_flx/mc.flx.spc.nc")
 #rad = rad.load()
+
+rkey = "radiance"
+
+for div in [1,2,5,10,25,50]:
+
+    out_rad, out_op, out_flx = half_levels(rad,rkey,"z",op,flx,div)
+    out_rad.to_netcdf("irr_from32x32_myst_zdiv" + str(int(div)) + ".nc")
+    #out_op.to_netcdf("op_levels_div" + str(int(div)) + ".nc")
+    #out_flx.to_netcdf("flx_levels_div" + str(int(div)) + ".nc")
+
+#nlist = [50,25,10,5,2,1]
+#for n in nlist:
 #
-#rkey = "radiance"
+#    rad_org = xr.open_dataset("rad_levels_div"+ str(n)  +".nc")
 #
-#for div in [1,2,5,10,25,50]:
+#    rad_mu_phi = rad_org
+#    rad_mu_phi.to_netcdf("rad_zdiv" + str(n) + "_mu_32_phi_32.nc")
+#    #rad_phi = rad_org
+#    #rad_mu.to_netcdf("rad_mu_32.nc")
+#    #rad_phi.to_netcdf("rad_phi_32.nc")
+#    for i in range(5):
+#        rad_mu_phi = half_phi(half_mu(rad_mu_phi,"radiance", "mu"),"radiance", "phi")
 #
-#    out_rad, out_op, out_flx = half_levels(rad,rkey,"z",op,flx,div)
-#    out_rad.to_netcdf("rad_levels_div" + str(int(div)) + ".nc")
-#    out_op.to_netcdf("op_levels_div" + str(int(div)) + ".nc")
-#    out_flx.to_netcdf("flx_levels_div" + str(int(div)) + ".nc")
+#        rad_mu_phi.to_netcdf("rad_zdiv"+ str(n)  +"_mu_" + str(32//int(pow(2,i+1))) +"_phi_" + str(32//int(pow(2,i+1))) + ".nc")
 
-rad_org = xr.open_dataset("rad_mu_2.nc")
-
-rad_mu_phi = rad_org
-#rad_phi = rad_org
-#rad_mu.to_netcdf("rad_mu_32.nc")
-#rad_phi.to_netcdf("rad_phi_32.nc")
-for i in range(5):
-    rad_mu_phi = half_phi(rad_mu_phi,"radiance", "phi")
-    rad_mu_phi.to_netcdf("rad_mu_2_phi_" + str(32//int(pow(2,i+1))) + ".nc")
-
-
+#rad = xr.open_dataset("rad_mu_2_phi_2.nc")
+#rad_n = half_phi(rad,"radiance","phi")
+#rad_n.to_netcdf("rad_mu_2_phi_1.nc")
 
 
 

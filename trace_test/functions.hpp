@@ -76,9 +76,13 @@ std::vector<double> calcSubstreamDirs(const std::vector<double>& mus, const std:
         wmu_e = wmu_s + wmus[i];
         for(size_t j = 0; j < nphi; ++j) {
             double delmu = (wmu_e-wmu_s)/nsub;
-            double delphi = wphis[j]/nsub;
-            double wphi_s = phis[j] - wphis[j]/2;
-            double wphi_e = phis[j] + wphis[j]/2;
+            double delphi = wphis[j]/M_PI*180/nsub;
+            double wphi_s = phis[j] - wphis[j]/M_PI*180/2; //def wphi_s = phis[j] - wphis[j]/2 wahrscheinlich falsch weil phi in ° und wphi in rad
+            double wphi_e = phis[j] + wphis[j]/M_PI*180/2; //def wphi_e = phis[j] + wphis[j]/2
+            
+            //if(wphi_s < 0){ wphi_s = 0;}
+            //if(wphi_e > 360){ wphi_e = 360;}
+            //std::cout << wphi_s << "    " << phis[j] << "   " << wphis[j] << "\n";
             for(size_t is = 0; is<nsub; ++is){
                 double m = wmu_s + (is+0.5) * delmu;
                 for(size_t js = 0; js<nsub; ++js){
@@ -115,36 +119,75 @@ std::array<double,3> groundReflection_lambert(auto ray, size_t idx, double albed
     return std::array<double,3>{E_ref,E_dir_ref,E_diff_ref};
 }
 
+
+
 double phase_HG(double g, double mu) {
     double f = 1+g*g-2*g*mu;
     return 1./(4*M_PI) * (1-g*g)/std::sqrt(f*f*f);
 }
 
+double integrated_HG(double g, double mu_s, double mu_e){
+    
+    if(g==0){
+        return 1/(4*M_PI);//*(mu_e-mu_s);
+    }
+    else{
+        return (1-g*g)/(4*M_PI*g*std::sqrt(1+g*g-2*g*mu_e)) - (1-g*g)/(4*M_PI*g*std::sqrt(1+g*g-2*g*mu_s));
+    }
+}
+
+double calc_IHG( double wmu_s, double wmu_e, double phi, double wphi, const Ray& ray, double g){
+
+   return 0;
+
+}
 
 double calc_pHG(double wmu_s, double wmu_e, double phi, double wphi, const Ray& ray, double g, size_t n, const std::vector<double>& substreams, size_t mu_i, size_t phi_j, size_t nmu, size_t nphi){
-    double delmu = (wmu_e-wmu_s)/n;
-    double delphi = wphi/n;
+    //double delmu = (wmu_e-wmu_s)/n;
+    //double delphi = wphi/n;
     double pf = 0;
-    double weightsum = 0;
-    double wphi_s = phi - wphi/2;
-    double wphi_e = phi + wphi/2;
-
+    //double weightsum = 0;
+    //double wphi_s = phi - wphi/2;
+    //double wphi_e = phi + wphi/2;
+    
+    ///test///
+   // Eigen::Vector3d dir_s, dir_e;
+   // for(size_t x = 0; x<3; ++x) {
+   //         size_t l1 = indexRecompose(std::array<size_t,5>{mu_i,phi_j,0,0,x}, std::array<size_t,5>{nmu,nphi,n,n,3});
+   //         size_t l2 = indexRecompose(std::array<size_t,5>{mu_i,phi_j,n-1,n-1,x}, std::array<size_t,5>{nmu,nphi,n,n,3});
+   //         dir_s[x] = substreams[l1];
+   //         dir_e[x] = substreams[l2];
+   //     }
+   // double mu_s = (-ray.d).dot(dir_s);
+   // double mu_e = (-ray.d).dot(dir_e);
+   // 
+   // double pf_alt = integrated_HG(g,mu_s,mu_e); 
+   // //return pf;
+    //////////
+    //double sa_min=10;
+    double sa;
+    //double sa_max=-10;
     for(size_t i = 0; i<n; ++i){
-        double m = wmu_s + (i+0.5) * delmu;
+        //double m = wmu_s + (i+0.5) * delmu;
         for(size_t j = 0; j<n; ++j){
-            double p = wphi_s + (j+0.5) * delphi;
+            //double p = wphi_s + (j+0.5) * delphi;
             //Eigen::Vector3d dir = angleToVec(m,p);
             Eigen::Vector3d dir;
             for(size_t x = 0; x<3; ++x) {
                 size_t li = indexRecompose(std::array<size_t,5>{mu_i,phi_j,i,j,x}, std::array<size_t,5>{nmu,nphi,n,n,3});
                 dir[x] = substreams[li];
             }
-            double sa = (-ray.d).dot(dir);
+            sa = (-ray.d).dot(dir);
+            //if(sa_min > sa){sa_min=sa;}
+            //if(sa_max < sa){sa_max=sa;}
             pf += phase_HG(g, sa);
-            weightsum += 1;
+            //weightsum += 1;
             if(pf < 0){std::cout << " negative \n";}
         }
     }
+    //double pf_alt = integrated_HG(g,sa_min,sa_max);
+    //std::cout << "pf = " << pf/(n*n) << " pf_alt = " << pf_alt << " sa_s = " << sa_min << " sa_e = " << sa_max  << "\n";
+    //return pf_alt;
     return pf/(n*n);
 }
 
@@ -210,7 +253,7 @@ std::array<double,3> calc_Ldiff(const Ray& ray, double dx, double dy, std::vecto
 
     }
     //tmp stuff
-    double sum_pf = 0;
+    //double sum_pf = 0;
 
     //
     for(size_t i = 0; i < nmu; ++i) {
@@ -230,8 +273,8 @@ std::array<double,3> calc_Ldiff(const Ray& ray, double dx, double dy, std::vecto
             size_t index_b = indexRecompose(std::array<size_t,5>{x,y,z,i,j},std::array<size_t,5>{nx,ny,nlyr+1,nmu,nphi});
             
             if(1==0){
-                pf = weight * phase_HG(0, muscatter); //g1!!!!!!!!!
-                sum_pf += pf;
+                pf = weight * phase_HG(g1, muscatter); //g1!!!!!!!!!
+                //sum_pf += pf;
                 std::cout << "muscatter = " << muscatter << "\n";
             }
             else{
@@ -250,7 +293,7 @@ std::array<double,3> calc_Ldiff(const Ray& ray, double dx, double dy, std::vecto
         }
         wmu_s = wmu_e;
     }
-    std::cout << "Lup = " << Lup << "   Ldown = " << Ldown << "     sum pf = " << sum_pf << " x y z " << x << y << z << "\n"; 
+    //std::cout << "Lup = " << Lup << "   Ldown = " << Ldown << " x y z " << x << y << z << "\n"; 
     return std::array<double,3>{Lup + Ldown,Lup,Ldown}; 
 }
 
