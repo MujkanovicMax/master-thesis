@@ -23,7 +23,7 @@ def irr_to_netcdf(inputname, outputname):
 
 def irr_to_netcdf_alt(inputname, outputname):
     #irr_myst = xr.open_dataset("../radiances/job_flx/mc.flx.spc.nc")
-    irr_myst = xr.open_dataset("irr_from_10s.nc")
+    irr_myst = xr.open_dataset("irr_cloud_above_cam.nc")
     rad = xr.open_dataset(inputname)
     Eup, Edown = calc_irr(rad)
     E = rad.drop_dims("mu").drop_dims("phi")
@@ -43,8 +43,7 @@ def irr_to_netcdf_alt(inputname, outputname):
 
 fname = "rad_mu_32.nc"
 
-irr_to_netcdf_alt(fname, "irr_from_10s_right_order.nc")
-
+irr_to_netcdf_alt(fname, "irr_from_10s_mcipa_pp.nc")
 
 #rad = xr.open_dataset(fname)
 #rad4 = xr.open_dataset("radiances_h.nc")

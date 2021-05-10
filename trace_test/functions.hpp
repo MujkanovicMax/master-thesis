@@ -9,6 +9,7 @@
 #include <Eigen/Dense>
 #include <stdexcept>
 #include <string>
+#include <fstream>
 
 template <size_t N>
 constexpr std::array<size_t,N> indexDecompose(size_t index, const std::array<size_t,N>& shape) {
@@ -191,6 +192,133 @@ double calc_pHG(double wmu_s, double wmu_e, double phi, double wphi, const Ray& 
     return pf/(n*n);
 }
 
+//std::array<double, 3> calc_Ldiff_tenstream(const Ray& ray, double dx, double dy, std::vector<double>& zlev,double tfar, double tnear, 
+//        size_t idx, double kext, double dtau, double g1, size_t nx, size_t ny, size_t nlyr, size_t nmu, size_t nphi,
+//        const std::vector<double>& mu, const std::vector<double>& phi, const std::vector<double>& wmu, const std::vector<double>& wphi, 
+//        const std::vector<double>& rad, const std::vector<double>& streams, size_t nsub, const std::vector<double>& substreams) {
+//
+//    //    Tenstream Streams: For Box: top 2, left 4, back 4 
+//    //    0     Eup
+//    //    1     Edown
+//    //    2     E x bottom left out
+//    //    3     E x bottom left in
+//    //    4     E x top left out
+//    //    5     E x top left in
+//    //    6     E y bottom back out
+//    //    7     E y bottom back in
+//    //    8     E y top back out
+//    //    9    E y top back in
+//    //    for all inward streams information from neighbouring boxes is needed !!
+//    
+//    Eigen::MatrixX3 dist(3,nstreams); 
+//    Eigen::VectorXd w(nstreams);
+//    Eigen::MatrixXd m(3,nstreams);
+//
+//    Eigen::Vector3d P = ray(tnear + dist);
+//    Eigen::Vector3d top((x+0.5)*dx,(y+0.5)*dy,zlev[z+1]);
+//    Eigen::Vector3d bottom((x+0.5)*dx,(y+0.5)*dy,zlev[z]);
+//    Eigen::Vector3d left_bottom(x*dx,(y+0.5)*dy,(zlev[z+1] - zlev[z])*0.25 + zlev[z]);
+//    Eigen::Vector3d left_top(x*dx,(y+0.5)*dy,(zlev[z+1] - zlev[z])*0.75 + zlev[z]);
+//    Eigen::Vector3d right_bottom((x+1)*dx,(y+0.5)*dy,(zlev[z+1] - zlev[z])*0.25 + zlev[z]);
+//    Eigen::Vector3d right_top((x+1)*dx,(y+0.5)*dy,(zlev[z+1] - zlev[z])*0.75 + zlev[z]);
+//    Eigen::Vector3d back_bottom((x+0.5)*dx,(y+1)*dy,(zlev[z+1] - zlev[z])*0.25 + zlev[z]);
+//    Eigen::Vector3d back_top((x+0.5)*dx,(y+1)*dy,(zlev[z+1] - zlev[z])*0.75 + zlev[z]);
+//    Eigen::Vector3d front_bottom((x+0.5)*dx,(y+0)*dy,(zlev[z+1] - zlev[z])*0.25 + zlev[z]);
+//    Eigen::Vector3d front_top((x+0.5)*dx,(y+0)*dy,(zlev[z+1] - zlev[z])*0.75 + zlev[z]);
+//    
+//    m.col(0) = top;
+//    m.col(1) = left_top;
+//    m.col(2) = right_top;
+//    m.col(3) = back_top;
+//    m.col(4) = front_top;
+//    m.col(5) = bottom;
+//    m.col(6) = left_bottom;
+//    m.col(7) = right_bottom;
+//    m.col(8) = back_bottom;
+//    m.col(9) = front_bottom;
+//    
+//    double total_dist = 0;
+//    for(size_t j=0; j<nstreams; ++j){
+//        
+//        dist.col(j) = P-m.col(j);
+//        for(size_t i; i<3; ++i){
+//            
+//            double x1 = dist.col(j)[0];
+//            double x2 = dist.col(j)[1];
+//            double x3 = dist.col(j)[2];
+//            
+//            w[j] = std::sqrt(x1*x1 + x2*x2 + x3*x3);
+//            total_dist += w[j]; 
+//
+//        }
+//
+//    }
+//    
+//    for(size_t j=0; j<nstreams; ++j){
+//
+//        w[j] *= w[j]*w[j];
+//        w[j] = w[j]/total_dist;
+//
+//    }
+//    
+//    Eigen::VectorXd index_in(nstreams);
+//    Eigen::VectorXd index_out(nstreams);
+//
+//    //inward streams
+//    size_t i_e_t_down = indexRecompose(std::array<size_t,3>{y,x,z,1},std::array<size_t,5>{ny,nx,nlyr+1,nstream});
+//    size_t i_e_bl_in = indexRecompose(std::array<size_t,3>{y,x,z,3},std::array<size_t,5>{ny,nx,nlyr+1,nstream});
+//    size_t i_e_tl_in = indexRecompose(std::array<size_t,3>{y,x,z,5},std::array<size_t,5>{ny,nx,nlyr+1,nstream});
+//    size_t i_e_bba_in = indexRecompose(std::array<size_t,3>{y,x,z,7},std::array<size_t,5>{ny,nx,nlyr+1,nstream});
+//    size_t i_e_tba_in = indexRecompose(std::array<size_t,3>{y,x,z,9},std::array<size_t,5>{ny,nx,nlyr+1,nstream});
+//    size_t i_e_bo_up = indexRecompose(std::array<size_t,3>{y,x,z-1,0},std::array<size_t,5>{ny,nx,nlyr+1,nstream});
+//    size_t i_e_br_in = indexRecompose(std::array<size_t,3>{y,x+1,z,2},std::array<size_t,5>{ny,nx,nlyr+1,nstream});
+//    size_t i_e_tr_in = indexRecompose(std::array<size_t,3>{y,x+1,z,4},std::array<size_t,5>{ny,nx,nlyr+1,nstream});
+//    size_t i_e_bf_in = indexRecompose(std::array<size_t,3>{y+1,x,z,6},std::array<size_t,5>{ny,nx,nlyr+1,nstream});
+//    size_t i_e_tf_in = indexRecompose(std::array<size_t,3>{y+1,x,z,8},std::array<size_t,5>{ny,nx,nlyr+1,nstream});
+//    //outward streams
+//    size_t i_e_t_up = indexRecompose(std::array<size_t,3>{y,x,z,0},std::array<size_t,5>{ny,nx,nlyr+1,nstream});
+//    size_t i_e_bl_out = indexRecompose(std::array<size_t,3>{y,x,z,2},std::array<size_t,5>{ny,nx,nlyr+1,nstream});
+//    size_t i_e_tl_out = indexRecompose(std::array<size_t,3>{y,x,z,4},std::array<size_t,5>{ny,nx,nlyr+1,nstream});
+//    size_t i_e_bba_out = indexRecompose(std::array<size_t,3>{y,x,z,6},std::array<size_t,5>{ny,nx,nlyr+1,nstream});
+//    size_t i_e_tba_out = indexRecompose(std::array<size_t,3>{y,x,z,8},std::array<size_t,5>{ny,nx,nlyr+1,nstream});
+//    size_t i_e_bo_down = indexRecompose(std::array<size_t,3>{y,x,z-1,1},std::array<size_t,5>{ny,nx,nlyr+1,nstream});
+//    size_t i_e_br_out = indexRecompose(std::array<size_t,3>{y,x+1,z,3},std::array<size_t,5>{ny,nx,nlyr+1,nstream});
+//    size_t i_e_tr_out = indexRecompose(std::array<size_t,3>{y,x+1,z,5},std::array<size_t,5>{ny,nx,nlyr+1,nstream});
+//    size_t i_e_bf_out = indexRecompose(std::array<size_t,3>{y+1,x,z,7},std::array<size_t,5>{ny,nx,nlyr+1,nstream});
+//    size_t i_e_tf_out = indexRecompose(std::array<size_t,3>{y+1,x,z,9},std::array<size_t,5>{ny,nx,nlyr+1,nstream});
+//
+//
+//    //inward streams upper half
+//    index_in[0] = i_e_t_down;
+//    index_in[1] = i_e_tl_in;
+//    index_in[2] = i_e_tr_in;
+//    index_in[3] = i_e_tba_in;
+//    index_in[4] = i_e_tf_in;
+//    //inward streams lower half
+//    index_in[5] = i_e_bo_up;
+//    index_in[6] = i_e_bl_in;
+//    index_in[7] = i_e_br_in;
+//    index_in[8] = i_e_bba_in;
+//    index_in[9] = i_e_bf_in;
+//   
+//    //outward streams upper half
+//    index_out[5] = i_e_t_up;
+//    index_out[6] = i_e_tl_out;
+//    index_out[7] = i_e_tr_out;
+//    index_out[8] = i_e_tba_out;
+//    index_out[9] = i_e_tf_out;
+//    //outward streams lower half
+//    index_out[0] = i_e_bo_down;
+//    index_out[1] = i_e_bl_out;
+//    index_out[2] = i_e_br_out;
+//    index_out[3] = i_e_bba_out;
+//    index_out[4] = i_e_bf_out;
+//
+//
+//
+//}
+
+
 std::array<double,3> calc_Ldiff(const Ray& ray, double dx, double dy, std::vector<double>& zlev,double tfar, double tnear, size_t idx, double kext, double dtau, double g1, size_t nx, size_t ny, size_t nlyr, size_t nmu, size_t nphi,
         const std::vector<double>& mu, const std::vector<double>& phi, const std::vector<double>& wmu, const std::vector<double>& wphi, const std::vector<double>& rad, 
         const std::vector<double>& streams, size_t nsub, const std::vector<double>& substreams) {
@@ -272,10 +400,10 @@ std::array<double,3> calc_Ldiff(const Ray& ray, double dx, double dy, std::vecto
             size_t index_t = indexRecompose(std::array<size_t,5>{x,y,z+1,i,j},std::array<size_t,5>{nx,ny,nlyr+1,nmu,nphi});
             size_t index_b = indexRecompose(std::array<size_t,5>{x,y,z,i,j},std::array<size_t,5>{nx,ny,nlyr+1,nmu,nphi});
             
-            if(1==0){
+            if(1==1){
                 pf = weight * phase_HG(g1, muscatter); //g1!!!!!!!!!
                 //sum_pf += pf;
-                std::cout << "muscatter = " << muscatter << "\n";
+                //std::cout << "muscatter = " << muscatter << "\n";
             }
             else{
                 pf = weight * calc_pHG(wmu_s, wmu_e, phi[j], wphi[j], ray, g1, nsub, substreams,i,j,nmu,nphi);
@@ -366,4 +494,34 @@ void read_flx( std::string fpath, std::vector<double>& Edir, std::vector<double>
         file.getVar("Edown").getVar(Edown.data());
  
     }   
-  
+
+void print_parameters(std::string radpath, std::string flxpath, std::string oppath, std::string fname, double dx, double dy, double albedo, double xloc,
+                        double yloc, double zloc, double Nxpixel, double Nypixel, double fov, double fov_phi1, double fov_phi2, double fov_theta1, 
+                        double fov_theta2, double rays, double nsub)
+{
+    std::ofstream file;
+    file.open("parameter_logs/" + fname + "_input_parameters.txt");
+    
+    file << "radpath: " << radpath  << "\n";
+    file << "flxpath: " << flxpath  << "\n";
+    file << "oppath: " << oppath  << "\n";
+    file << "dx = " << dx  << "\n";
+    file << "dy = " << dy  << "\n";
+    file << "albedo = " << albedo  << "\n";
+    file << "xloc = " << xloc << "\n";
+    file << "yloc = " << yloc << "\n";
+    file << "zloc = " << zloc << "\n";
+    file << "Nxpixel = " << Nxpixel  << "\n";
+    file << "Nypixel = " << Nypixel  << "\n";
+    file << "fov = " << fov  << "\n";
+    file << "fov_phi1 = " << fov_phi1  << "\n";
+    file << "fov_phi2 = " << fov_phi2  << "\n";
+    file << "fov_theta1 = " << fov_theta1  << "\n";
+    file << "fov_theta2 = " << fov_theta2  << "\n";
+    file << "rays = " << rays  << "\n";
+    file << "nsub = " << nsub  << "\n";
+    file.close();
+
+
+}
+

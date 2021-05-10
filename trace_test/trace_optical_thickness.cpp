@@ -14,19 +14,19 @@
 int main(int argc, char** argv) {
     //for(int xg = 2; xg <= 64; xg = 2*xg){
       //  std::cout << "nmu = " << MU << "\n";
-        for(int zdiv = 0; zdiv <= 5; ++zdiv){
+        for(int zdiv = 0; zdiv <= 0; ++zdiv){
         for(int adiv = 0; adiv <= 0; ++adiv){
             //std::cout << "nphi = " << PHI << "\n\n";
     //int zdiv = 1;
-    int zdivs[6] {1,2,5,10,25,50}; // for level benchmark
+    int zdivs[9] {1,2,4,10,20,35,50,100,200}; // for level benchmark
     int adivs[6] {32,16,8,4,2,1}; // for radiance samples benchmark
     //int divs[1] {2};
     std::cout << "Reading netcdf data" << "\n";
     //Reading in netcdf data
     //std::string radfpath = "/home/m/Mujkanovic.Max/ma/radiances/radiances_mu" + std::to_string(MU) + "_phi" + std::to_string(PHI) + ".nc";
     //std::string radfpath = "rad_zdiv" + std::to_string(zdivs[zdiv])  + "_mu_" + std::to_string(adivs[adiv])  + "_phi_" + std::to_string(adivs[adiv]) + ".nc";
-    std::string radfpath = "irr_from32x32_myst_zdiv" + std::to_string(zdivs[zdiv])  + ".nc";
-    //std::string radfpath = "irr_from_10s_right_order.nc";
+    std::string radfpath = "irr_from_10s_mcipa_pp.nc";  //"irr_from32x32_myst_zdiv" + std::to_string(zdivs[zdiv])  + ".nc";
+    //std::string radfpath = "rad_zdiv1_mu_2_phi_2.nc";
     //std::string radfpath = "../radiances/rad_philipp_16x16.nc";
 
     std::cout << "radfpath = " << radfpath << "\n\n";
@@ -68,6 +68,11 @@ int main(int argc, char** argv) {
         ke *= 1000;
     }
     std::cout << "done" << "\n";
+    
+
+    // Filename for output
+    std::string outputfname = "2dtest_10s_ipa";
+
 
 
     // Grid Parameters and grid declaration
@@ -76,20 +81,28 @@ int main(int argc, char** argv) {
     double albedo = 0.2;
     auto mgrid = rayli::vgrid::MysticCloud(dx, dy, nx, ny, zlev);
     auto grid = rayli::vgrid::Cyclic(mgrid, {{0, 0, -std::numeric_limits<double>::infinity()},{nx*dx, ny*dy, std::numeric_limits<double>::infinity()}});
+    //auto grid = mgrid;
     std::cout << "\nGrid parameters:\n" << "dx = "  << dx << " dy = " << dy << " nx = " << nx << " ny = " << ny << " nlyr = " << nlyr << " nlev = " << nlev << " nmu = " << nmu << " nphi = " << nphi <<"\n\n";
 
     // Camera parameters and camera declaration
-    size_t Nxpixel = 90;
-    size_t Nypixel = 1;
+    size_t Nxpixel = 1000;
+    size_t Nypixel = 1000;
     double fov = 2;
-    auto loc = Eigen::Vector3d{4,0.01,2};     //def  Eigen::Vector3d{4,0.01,2}
+    double fov_phi1 = -45;
+    double fov_phi2 = 45;
+    double fov_theta1 = 90-45;
+    double fov_theta2 = 90+45;
+    double xloc = 4; //in km
+    double yloc = 0.01;
+    double zloc = 2;
+    auto loc = Eigen::Vector3d{xloc,yloc,zloc};     //def  Eigen::Vector3d{4,0.01,2}
     double fovx = fov;
     double fovy = fov * Nxpixel / Nypixel;
-    size_t rays = 90;
-    auto cam = MysticPanoramaCamera(loc, 0, 0, -45, 45, 90, 90, rays); //def: 0,0,-45,45,90,90,90
+    size_t rays = 1000*1000;
+    auto cam = MysticPanoramaCamera(loc, 0, 0, fov_phi1, fov_phi2, fov_theta1, fov_theta2, rays); //def: 0,0,-45,45,90,90,90
 
     // Stream and substream calculations
-    size_t nsub = 50;
+    size_t nsub = 10; //50;
     std::vector<double> streams = calcStreamDirs(mus,phis,nmu,nphi);
     std::vector<double> substreams = calcSubstreamDirs(mus,phis,wmus,wphis,nmu,nphi,nsub);
     
@@ -119,6 +132,7 @@ int main(int argc, char** argv) {
             double xpx = (j + 0.5) / Nxpixel;
             
             auto ray = cam.compute_ray(Eigen::Vector2d{xpx, ypx});
+            //std::cout << ray << "\n";
             //auto ray = Ray{loc, Eigen::Vector3d{-0.700909264299851,1.82977702939428e-16,-0.713250449154182}.normalized()};
             //auto ray = Ray{loc, Eigen::Vector3d{-0.0610485395348568,1.6787439687354e-16,-0.998134798421867}.normalized()};
             //sum zeroing
@@ -188,7 +202,7 @@ int main(int argc, char** argv) {
             groundbox[j+i*Nxpixel]      = indexDecompose<3>(groundidx,std::array<size_t,3>{nx,ny,nlyr})[0];
             gRdir_i[j+i*Nxpixel]        = gRdir * exp(-optical_thickness);
             gRdiff_i[j+i*Nxpixel]       = gRdiff * exp(-optical_thickness);
-            std::cout << "image val = " << image[j + i * Nxpixel] << "  Ldiff = " << Ldiff_i[j+i*Nxpixel] << "  Lup = " << Lup_i[j+i*Nxpixel] << "  Ldown = " << Ldown_i[j+i*Nxpixel] << "  Ldir = " << Ldir_i[j+i*Nxpixel] << "\n";
+            //std::cout << "image val = " << image[j + i * Nxpixel] << "  Ldiff = " << Ldiff_i[j+i*Nxpixel] << "  Lup = " << Lup_i[j+i*Nxpixel] << "  Ldown = " << Ldown_i[j+i*Nxpixel] << "  Ldir = " << Ldir_i[j+i*Nxpixel] << "\n";
            
 //            std::cout << "Pixel " << j+1 << " done" << "  ival = " << image[j+i*Nxpixel] << " "\
                 <<  Ldiff_i[j+i*Nxpixel] << " "  << Lup_i[j+i*Nxpixel] << " " << Ldown_i[j+i*Nxpixel]<< " " << Ldir_i[j+i*Nxpixel] <<"\n";
@@ -196,13 +210,18 @@ int main(int argc, char** argv) {
 
         }
     }
+    std::cout << "Stop Raytracing...\n";    
     
+    print_parameters(radfpath, flxfpath, opfpath, outputfname, dx, dy, albedo, xloc, yloc, zloc, Nxpixel, Nypixel, fov, fov_phi1, fov_phi2, fov_theta1,
+                        fov_theta2, rays, nsub);
+
+
     {
         using namespace netCDF;    
         //NcFile file("output_mu" + std::to_string(MU) + "_phi" + std::to_string(PHI) +  ".nc", NcFile::FileMode::replace);
         //NcFile file("output_zdiv" + std::to_string(zdivs[zdiv])  + "_mu_" + std::to_string(adivs[adiv])  + "_phi_" + std::to_string(adivs[adiv]) + ".nc", NcFile::FileMode::replace);
-        NcFile file("output_irr_from32x32_myst_zdiv" + std::to_string(zdivs[zdiv])  + ".nc", NcFile::FileMode::replace);
-        //NcFile file("output_irr_from_.nc", NcFile::FileMode::replace);
+        //NcFile file("output_subsamp_plot_4x4_nsub_" + std::to_string(zdivs[zdiv])  + ".nc", NcFile::FileMode::replace);
+        NcFile file(outputfname + ".nc", NcFile::FileMode::replace);
         auto xdim = file.addDim("x", Nxpixel);
         auto ydim = file.addDim("y", Nypixel);
         file.addVar("image", NcType::nc_DOUBLE, {ydim, xdim}).putVar(image.data());
