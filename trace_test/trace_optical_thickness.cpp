@@ -25,7 +25,7 @@ int main(int argc, char** argv) {
     //Reading in netcdf data
     //std::string radfpath = "/home/m/Mujkanovic.Max/ma/radiances/radiances_mu" + std::to_string(MU) + "_phi" + std::to_string(PHI) + ".nc";
     //std::string radfpath = "rad_zdiv" + std::to_string(zdivs[zdiv])  + "_mu_" + std::to_string(adivs[adiv])  + "_phi_" + std::to_string(adivs[adiv]) + ".nc";
-    std::string radfpath = "irr_from_10s_mcipa_pp.nc";  //"irr_from32x32_myst_zdiv" + std::to_string(zdivs[zdiv])  + ".nc";
+    std::string radfpath = "irr_from32x32_myst_zdiv1.nc";  //"irr_from32x32_myst_zdiv" + std::to_string(zdivs[zdiv])  + ".nc";
     //std::string radfpath = "rad_zdiv1_mu_2_phi_2.nc";
     //std::string radfpath = "../radiances/rad_philipp_16x16.nc";
 
@@ -40,8 +40,8 @@ int main(int argc, char** argv) {
     read_radiances(radfpath, radiances, mus, phis, wmus, wphis,  nmu, nphi);
    
 
-    //std::string flxfpath = "/home/m/Mujkanovic.Max/ma/radiances/job_flx/mc.flx.spc.nc";
-    std::string flxfpath = "flx_levels_div" + std::to_string(zdivs[zdiv]) + ".nc";
+    std::string flxfpath = "/home/m/Mujkanovic.Max/ma/radiances/job_flx/mc.flx.spc.nc";
+    //std::string flxfpath = "flx_levels_div" + std::to_string(zdivs[zdiv]) + ".nc";
     //std::string flxfpath = "../radiances/flx_philipp_16x16.nc";
     std::cout << "flxfpath = " << flxfpath << "\n\n";
     std::vector<double> Edir;
@@ -52,8 +52,8 @@ int main(int argc, char** argv) {
     read_flx( flxfpath, Edir, Edown, sza_dir, muEdir );
    
 
-    std::string opfpath = "op_levels_div" + std::to_string(zdivs[zdiv]) + ".nc";
-    //std::string opfpath = "test.optical_properties.nc";
+    //std::string opfpath = "op_levels_div" + std::to_string(zdivs[zdiv]) + ".nc";
+    std::string opfpath = "test.optical_properties.nc";
     //std::string opfpath = "../radiances/opprop_philipp_16x16.nc";
 
     std::cout << "opfpath = " << opfpath << "\n\n";
@@ -71,7 +71,7 @@ int main(int argc, char** argv) {
     
 
     // Filename for output
-    std::string outputfname = "2dtest_10s_ipa";
+    std::string outputfname = "2x1comp_irr";
 
 
 
@@ -85,8 +85,8 @@ int main(int argc, char** argv) {
     std::cout << "\nGrid parameters:\n" << "dx = "  << dx << " dy = " << dy << " nx = " << nx << " ny = " << ny << " nlyr = " << nlyr << " nlev = " << nlev << " nmu = " << nmu << " nphi = " << nphi <<"\n\n";
 
     // Camera parameters and camera declaration
-    size_t Nxpixel = 1000;
-    size_t Nypixel = 1000;
+    size_t Nxpixel = 90;
+    size_t Nypixel = 1;
     double fov = 2;
     double fov_phi1 = -45;
     double fov_phi2 = 45;
@@ -98,11 +98,11 @@ int main(int argc, char** argv) {
     auto loc = Eigen::Vector3d{xloc,yloc,zloc};     //def  Eigen::Vector3d{4,0.01,2}
     double fovx = fov;
     double fovy = fov * Nxpixel / Nypixel;
-    size_t rays = 1000*1000;
+    size_t rays = Nxpixel*Nypixel;
     auto cam = MysticPanoramaCamera(loc, 0, 0, fov_phi1, fov_phi2, fov_theta1, fov_theta2, rays); //def: 0,0,-45,45,90,90,90
 
     // Stream and substream calculations
-    size_t nsub = 10; //50;
+    size_t nsub = 30; //50;
     std::vector<double> streams = calcStreamDirs(mus,phis,nmu,nphi);
     std::vector<double> substreams = calcSubstreamDirs(mus,phis,wmus,wphis,nmu,nphi,nsub);
     

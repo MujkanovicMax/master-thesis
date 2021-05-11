@@ -228,7 +228,7 @@ for div in [1,2,5,10,25,50]:
     out_rad, out_op, out_flx = half_levels(rad,rkey,"z",op,flx,div)
     out_rad.to_netcdf("irr_from32x32_myst_zdiv" + str(int(div)) + ".nc")
     #out_op.to_netcdf("op_levels_div" + str(int(div)) + ".nc")
-    #out_flx.to_netcdf("flx_levels_div" + str(int(div)) + ".nc")
+    out_flx.to_netcdf("flx_levels_div" + str(int(div)) + ".nc")
 
 #nlist = [50,25,10,5,2,1]
 #for n in nlist:
