@@ -438,7 +438,7 @@ void calc_image(auto grid, auto cam, double Nxpixel, double Nypixel, double dx, 
     //Loop variables
     size_t a,b,c;
     //Main loop
-    std::cout << "Starting ray tracing..." << "\n";
+    std::cout << "Starting Raytracer..." << "\n";
     
     for(size_t i = 0; i < Nypixel; ++i) {
         
@@ -513,7 +513,7 @@ void calc_image(auto grid, auto cam, double Nxpixel, double Nypixel, double dx, 
         }
     }
  
-
+std::cout << "Stopping Raytracer...\n";
 }
 
 
