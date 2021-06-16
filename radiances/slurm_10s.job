@@ -1,0 +1,13 @@
+#!/bin/bash -l
+#SBATCH --ntasks-per-node=1
+#SBATCH --nodes=1
+#SBATCH --partition=cluster,met-ws
+#SBATCH --mem=25G
+#SBATCH --time=8:00:00
+#SBATCH --output=testo/log.out
+#SBATCH --error=testo/log.err
+#SBATCH --mail-type=END
+#SBATCH --mail-user=Mujkanovic.Max@physik.uni-muenchen.de
+
+
+/project/meteo/work/Mujkanovic.Max/maproject/libRadtran/bin/uvspec -f uvspec_10s.inp > testo/out.data

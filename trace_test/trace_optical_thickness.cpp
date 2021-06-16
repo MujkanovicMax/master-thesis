@@ -12,46 +12,47 @@
 
 
 int main(int argc, char** argv) {
+
+    int zdivs[9] {1,2,5,10,25,50}; // for level benchmark
+    std::string names[4] {"irr_from_10s_twostr_only","irr_from_mystic_mcipa","irr_from_mystic","irr_from_10s_base"};
+    int adivs[5] {2,4,8,16,32} ;
     for(int zdiv = 0; zdiv <= 0; ++zdiv){
         for(int adiv = 0; adiv <= 0; ++adiv){
-            int zdivs[9] {1,2,4,10,20,35,50,100,200}; // for level benchmark
-            int adivs[6] {32,16,8,4,2,1}; // for radiance samples benchmark
 
             // Filenames for Input
 
-            //std::string radfpath = "/home/m/Mujkanovic.Max/ma/radiances/radiances_mu" + std::to_string(MU) + "_phi" + std::to_string(PHI) + ".nc";
-            //std::string radfpath = "rad_zdiv" + std::to_string(zdivs[zdiv])  + "_mu_" + std::to_string(adivs[adiv])  + "_phi_" + std::to_string(adivs[adiv]) + ".nc";
-            std::string radfpath = "rad_mu_2_phi_2.nc";  //"irr_from32x32_myst_zdiv" + std::to_string(zdivs[zdiv])  + ".nc";
-            //std::string radfpath = "rad_zdiv1_mu_2_phi_2.nc";
-            //std::string radfpath = "../radiances/rad_philipp_16x16.nc";
+            //std::string radfpath = "rad_zdiv" + std::to_string(zdivs[zdiv])  + "_mu_" + "2"  + "_phi_" + "1" + ".nc";
+            //std::string radfpath = names[in] + "_div" + std::to_string(zdivs[zdiv]) +  ".nc";  //"irr_from32x32_myst_zdiv" + std::to_string(zdivs[zdiv])  + ".nc";
+            //std::string radfpath = "../radiances/rad_testcases/checkerboard_full/rad_checkerboard.nc";
+            std::string radfpath = "/project/meteo-scratch/Mujkanovic.Max/rad_philipp_new/rad_philipp_new.nc";
 
-            std::string flxfpath = "/home/m/Mujkanovic.Max/ma/radiances/job_flx/mc.flx.spc.nc";
+            //std::string flxfpath = "../radiances/rad_testcases/checkerboard_full/flx_checkerboard.nc";
             //std::string flxfpath = "flx_levels_div" + std::to_string(zdivs[zdiv]) + ".nc";
-            //std::string flxfpath = "../radiances/flx_philipp_16x16.nc";
+            std::string flxfpath = "/project/meteo-scratch/Mujkanovic.Max/rad_philipp_new/flx_philipp_new.nc";
 
             //std::string opfpath = "op_levels_div" + std::to_string(zdivs[zdiv]) + ".nc";
-            std::string opfpath = "test.optical_properties.nc";
-            //std::string opfpath = "../radiances/opprop_philipp_16x16.nc";
+            //std::string opfpath = "../radiances/rad_testcases/checkerboard_full/op_checkerboard.nc";
+            std::string opfpath = "/project/meteo-scratch/Mujkanovic.Max/rad_philipp_new/op_philipp_new_expanded_nobs.nc";
 
             // Filename for output
-            std::string outputfname = "refactest_n";
+            std::string outputfname = "output2d_philipp_test";
 
             // Grid Parameters 
-            double dx = 0.1;
-            double dy = 1;
+            double dx = 0.025;
+            double dy = 0.025;
             double albedo = 0.2;
 
             // Camera parameters and camera declaration
-            size_t Nxpixel = 90;
-            size_t Nypixel = 1;
+            int Nxpixel = 20;
+            int Nypixel = 20;
             double fov = 2;
             double fov_phi1 = -45;
-            double fov_phi2 = 45;
-            double fov_theta1 = 90-45;
-            double fov_theta2 = 90+45;
-            double xloc = 4; //in km
-            double yloc = 0.01;
-            double zloc = 2;
+            double fov_phi2 = -45;
+            double fov_theta1 = 45;
+            double fov_theta2 = 135;
+            double xloc = 1; //in km
+            double yloc = 1;
+            double zloc = 5;
             auto loc = Eigen::Vector3d{xloc,yloc,zloc};     
             double fovx = fov;
             double fovy = fov * Nxpixel / Nypixel;
@@ -59,8 +60,12 @@ int main(int argc, char** argv) {
             auto cam = MysticPanoramaCamera(loc, 0, 0, fov_phi1, fov_phi2, fov_theta1, fov_theta2, rays); 
 
             //Subdivisions for Substreams
-            size_t nsub = 30; //50;
+            int nsub = 5; //50;
+            
 
+            //Parsing config file
+            std::string configname = "config.txt";
+            configparser(configname, radfpath, flxfpath, opfpath, outputfname, dx, dy, albedo, Nxpixel, Nypixel, fov_phi1, fov_phi2, fov_theta1, fov_theta2, xloc, yloc, zloc, nsub);
 
             std::cout << "Reading netcdf data" << "\n\n";
             std::cout << "radfpath = " << radfpath << "\n";
@@ -75,18 +80,18 @@ int main(int argc, char** argv) {
             std::vector<double> wphis;
             std::vector<double> Edir;
             std::vector<double> Edown;
-            Eigen::Vector3d sza_dir;
             std::vector<double> kext;
             std::vector<double> zlev;
             std::vector<double> w0,g1;
+            Eigen::Vector3d sza_dir;
             size_t nlev, nlyr, nx, ny;
             size_t nmu,nphi;
             double muEdir;
 
             //read NetCDF data
             read_radiances(radfpath, radiances, mus, phis, wmus, wphis,  nmu, nphi);
-            read_flx( flxfpath, Edir, Edown, sza_dir, muEdir );
-            read_opprop( opfpath, kext, zlev, w0, g1, nlev, nlyr, nx, ny );
+            read_flx(flxfpath, Edir, Edown, sza_dir, muEdir);
+            read_opprop(opfpath, kext, zlev, w0, g1, nlev, nlyr, nx, ny);
             for(auto& ke: kext) {
                 ke *= 1000;
             }
@@ -119,16 +124,19 @@ int main(int argc, char** argv) {
             //outputting parameters 
             std::cout << "\nCamera parameters:\n\n" << "X Pixel: " << Nxpixel << "    Y Pixel: " << Nypixel << "\n";
             std::cout << "Camera at x = " << xloc << "km  y = " << yloc << "km  z = " << zloc << "km\n";
+            std::cout << "Camera opening angles: Phi1 = " + std::to_string(fov_phi1) + "    Phi2 = " + std::to_string(fov_phi2) + "     Theta1 = " + std::to_string(fov_theta1) + "     Theta2 = " + \
+                        std::to_string(fov_theta2) + "\n";
             std::cout << "\nGrid parameters:\n\n" << "dx = "  << dx << " dy = " << dy << " nx = " << nx << " ny = " << ny << " nlyr = " << nlyr 
-                << " nlev = " << nlev << " nmu = " << nmu << " nphi = " << nphi <<"\n\n";
+                << " nlev = " << nlev << " nmu = " << nmu << " nphi = " << nphi <<"\n";
+            std::cout << "Calculating phase functions with " + std::to_string(nsub) + " subdivisions.\n\n";
 
             //main image calculation
             calc_image(grid, cam, Nxpixel, Nypixel, dx, dy, zlev, kext,  g1, w0, albedo, muEdir, nx, ny, nlyr, nmu, nphi, mus, phis, wmus,  wphis,
                     sza_dir, Edir, radiances, streams, nsub, substreams, image, opthick_image, Ldiff_i, Lup_i, Ldown_i, Ldir_i, groundbox, gRdir_i, gRdiff_i);
 
             //printing calculation parameters 
-            print_parameters(radfpath, flxfpath, opfpath, outputfname, dx, dy, albedo, xloc, yloc, zloc, Nxpixel, Nypixel, fov, fov_phi1, fov_phi2, fov_theta1,
-                    fov_theta2, rays, nsub);
+            //print_parameters(radfpath, flxfpath, opfpath, outputfname, dx, dy, albedo, xloc, yloc, zloc, Nxpixel, Nypixel, fov, fov_phi1, fov_phi2, fov_theta1,
+              //      fov_theta2, rays, nsub);
 
 
 

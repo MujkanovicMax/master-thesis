@@ -16,11 +16,12 @@ mc_panorama_view=${12}
 mc_sensorposition=${13}
 mc_sample_grid=${14}
 mc_backward=${15}
+SAVEDIR=${16}
 
 
-
-JOBDIR=job_panorama
-if [ ! -e $JOBDIR ]; then mkdir $JOBDIR; fi
+JOBDIR=$SAVEDIR
+if [ ! -e $JOBDIR ]; then mkdir -p $JOBDIR; fi
+echo $JOBDIR
 cp $ATM $JOBDIR/
 cat > $JOBDIR/uvspec_panorama.inp << EOFJOB 
 data_files_path ${LIBRAD}/data
@@ -35,7 +36,7 @@ umu 0
 phi 0
 phi0 $PHI0 #270
 rte_solver mystic
-mc_photons $PHOTONS #1000
+mc_photons $PHOTONS #10000 #1000
 mc_minphotons 1
 wc_properties hu
 wc_file 3D $FNAME
@@ -53,17 +54,30 @@ no_absorption mol
 
 EOFJOB
 
+cat > $JOBDIR/slurm.job << EOF
+#!/bin/bash -l
+#SBATCH --ntasks-per-node=1
+#SBATCH --nodes=1
+#SBATCH --partition=cluster,met-ws
+#SBATCH --mem=25G
+#SBATCH --time=36:00:00
+#SBATCH --output=$JOBDIR/log.%j.out
+#SBATCH --error=$JOBDIR/log.%j.err
+#SBATCH --mail-type=END
+#SBATCH --mail-user=Mujkanovic.Max@physik.uni-muenchen.de
+
+
 cd $JOBDIR
 if [ ! -e $FNAME ]; then  ln -s ../$FNAME; fi 
 #if [ ! -e out.data ]; then
 $LIBRAD/bin/uvspec -f uvspec_panorama.inp > out_panorama.data
 #fi
-if [ ! -e 04_convertToNetCDF.sh ]; then ln -s ../04_convertToNetCDF.sh; fi
-bash 04_convertToNetCDF.sh ./
+if [ ! -e 04_convertToNetCDF.sh ]; then ln -s /home/m/Mujkanovic.Max/ma/radiances/04_convertToNetCDF.sh; fi
+bash 04_convertToNetCDF.sh
 cd $WORKDIR
+EOF
 
-
-
+sbatch $JOBDIR/slurm.job
 
 
 

@@ -1,3 +1,6 @@
+#$linesza=$( grep "sza " uvspec.inp )
+#$sza=${linesza:4:2}
+
 function convert_flx2nc {
   if [ ! -e mc.flx.spc ]; then
     echo "Error, there is no data to convert!"
@@ -34,8 +37,8 @@ D = xr.Dataset({
     'Edown': xr.DataArray(Edown, dims=('x','y','z','wvl')),    
     'Eup': xr.DataArray(Eup, dims=('x','y','z','wvl')),
 })
-sza = 45. #np.loadtxt("input_params.txt",dtype=float, skiprows=2, max_rows=1)
-mu0 = np.deg2rad(sza)
+sza = 45  #45. #np.loadtxt("input_params.txt",dtype=float, skiprows=2, max_rows=1)
+mu0 = np.cos(np.deg2rad(sza))
 D.attrs["mu0"] = -mu0
 D.to_netcdf('{}.nc'.format(mystic_output))
 EOF

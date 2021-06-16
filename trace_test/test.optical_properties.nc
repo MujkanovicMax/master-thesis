@@ -1,1 +1,0 @@
-../radiances/job_panorama/test.optical_properties.nc

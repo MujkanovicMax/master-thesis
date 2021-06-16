@@ -16,7 +16,7 @@ def mergerads(nmus,m1,m2, nphis, fname="radiances.nc"):
 
     mus,wmus = a.gen_mus(nmus,m1,m2)
     phis,wphis = a.gen_phis(nphis)
-    Dlist = [xr.open_mfdataset(["job_mu" + str(int(nmus))  + "/job_{}_{}/mc.rad.spc.nc".format(i,j) for j in phis],concat_dim="phi") for i in mus]
+    Dlist = [xr.open_mfdataset(["rad_testcases/checkerboard/job_mu" + str(int(nmus))  + "/job_{}_{}/mc.rad.spc.nc".format(i,j) for j in phis],concat_dim="phi") for i in mus]
     D = xr.concat(Dlist, dim="mu")
     D["wphi"] = wphis
     D["wmu"] = wmus

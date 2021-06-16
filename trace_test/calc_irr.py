@@ -22,7 +22,7 @@ def irr_to_netcdf(inputname, outputname):
     return E
 
 def irr_to_netcdf_alt(inputname, outputname):
-    irr_myst = xr.open_dataset("../radiances/job_flx/mc.flx.spc.nc")
+    irr_myst = xr.open_dataset("../radiances/mc.flx.spc.nc")
     #irr_myst = xr.open_dataset("irr_cloud_above_cam.nc")
     rad = xr.open_dataset(inputname)
     Eup, Edown = calc_irr(rad)
@@ -35,15 +35,15 @@ def irr_to_netcdf_alt(inputname, outputname):
     E["wphi"] = [2*np.pi]
     E["wmu"] = [1,1]
     E["radiance"] = (["x","y","z","wvl","mu","phi"], np.zeros((E.x.shape[0],E.y.shape[0],E.z.shape[0],E.wvl.shape[0],E.mu.shape[0],E.phi.shape[0])))
-    E["radiance"][:,:,:,:,0,0] = Edown_myst
-    E["radiance"][:,:,:,:,1,0] = Eup_myst
+    E["radiance"][:,:,:,:,0,0] = Edown_myst/np.pi
+    E["radiance"][:,:,:,:,1,0] = Eup_myst/np.pi
     E.to_netcdf(outputname)
     return E
 
 
 fname = "rad_mu_32.nc"
 
-irr_to_netcdf_alt(fname, "test.nc")
+irr_to_netcdf_alt(fname, "irr_from_10s_twostr_only.nc")
 
 #rad = xr.open_dataset(fname)
 #rad4 = xr.open_dataset("radiances_h.nc")

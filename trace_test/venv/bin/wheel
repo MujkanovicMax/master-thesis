@@ -1,4 +1,4 @@
-#!/project/meteo/work/Mujkanovic.Max/maproject/trace_test/venv/bin/python2
+#!/project/meteo/work/Mujkanovic.Max/maproject/trace_test/venv/bin/python3
 
 # -*- coding: utf-8 -*-
 import re

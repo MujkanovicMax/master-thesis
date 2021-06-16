@@ -10,6 +10,7 @@
 #include <stdexcept>
 #include <string>
 #include <fstream>
+#include <algorithm>
 
 template <size_t N>
 constexpr std::array<size_t,N> indexDecompose(size_t index, const std::array<size_t,N>& shape) {
@@ -179,6 +180,7 @@ double calc_pHG(double wmu_s, double wmu_e, double phi, double wphi, const Ray& 
                 dir[x] = substreams[li];
             }
             sa = (-ray.d).dot(dir);
+            //sa = -ray.d[0] * dir[0] - ray.d[1] * dir[1] - ray.d[2] * dir[2];
             //if(sa_min > sa){sa_min=sa;}
             //if(sa_max < sa){sa_max=sa;}
             pf += phase_HG(g, sa);
@@ -212,6 +214,7 @@ double calc_pHG(double wmu_s, double wmu_e, double phi, double wphi, const Ray& 
 //    
 //    Eigen::MatrixX3 dist(3,nstreams); 
 //    Eigen::VectorXd w(nstreams);
+//    Eigen::VectorXd w2(nstreams);
 //    Eigen::MatrixXd m(3,nstreams);
 //
 //    Eigen::Vector3d P = ray(tnear + dist);
@@ -257,62 +260,49 @@ double calc_pHG(double wmu_s, double wmu_e, double phi, double wphi, const Ray& 
 //    for(size_t j=0; j<nstreams; ++j){
 //
 //        w[j] *= w[j]*w[j];
-//        w[j] = w[j]/total_dist;
+//        w[j] = 1-w[j]/total_dist;
 //
 //    }
 //    
-//    Eigen::VectorXd index_in(nstreams);
-//    Eigen::VectorXd index_out(nstreams);
+//    Eigen::VectorXd iup(nstreams);
+//    Eigen::VectorXd idown(nstreams);
 //
-//    //inward streams
-//    size_t i_e_t_down = indexRecompose(std::array<size_t,3>{y,x,z,1},std::array<size_t,5>{ny,nx,nlyr+1,nstream});
-//    size_t i_e_bl_in = indexRecompose(std::array<size_t,3>{y,x,z,3},std::array<size_t,5>{ny,nx,nlyr+1,nstream});
-//    size_t i_e_tl_in = indexRecompose(std::array<size_t,3>{y,x,z,5},std::array<size_t,5>{ny,nx,nlyr+1,nstream});
-//    size_t i_e_bba_in = indexRecompose(std::array<size_t,3>{y,x,z,7},std::array<size_t,5>{ny,nx,nlyr+1,nstream});
-//    size_t i_e_tba_in = indexRecompose(std::array<size_t,3>{y,x,z,9},std::array<size_t,5>{ny,nx,nlyr+1,nstream});
-//    size_t i_e_bo_up = indexRecompose(std::array<size_t,3>{y,x,z-1,0},std::array<size_t,5>{ny,nx,nlyr+1,nstream});
-//    size_t i_e_br_in = indexRecompose(std::array<size_t,3>{y,x+1,z,2},std::array<size_t,5>{ny,nx,nlyr+1,nstream});
-//    size_t i_e_tr_in = indexRecompose(std::array<size_t,3>{y,x+1,z,4},std::array<size_t,5>{ny,nx,nlyr+1,nstream});
-//    size_t i_e_bf_in = indexRecompose(std::array<size_t,3>{y+1,x,z,6},std::array<size_t,5>{ny,nx,nlyr+1,nstream});
-//    size_t i_e_tf_in = indexRecompose(std::array<size_t,3>{y+1,x,z,8},std::array<size_t,5>{ny,nx,nlyr+1,nstream});
-//    //outward streams
-//    size_t i_e_t_up = indexRecompose(std::array<size_t,3>{y,x,z,0},std::array<size_t,5>{ny,nx,nlyr+1,nstream});
-//    size_t i_e_bl_out = indexRecompose(std::array<size_t,3>{y,x,z,2},std::array<size_t,5>{ny,nx,nlyr+1,nstream});
-//    size_t i_e_tl_out = indexRecompose(std::array<size_t,3>{y,x,z,4},std::array<size_t,5>{ny,nx,nlyr+1,nstream});
-//    size_t i_e_bba_out = indexRecompose(std::array<size_t,3>{y,x,z,6},std::array<size_t,5>{ny,nx,nlyr+1,nstream});
-//    size_t i_e_tba_out = indexRecompose(std::array<size_t,3>{y,x,z,8},std::array<size_t,5>{ny,nx,nlyr+1,nstream});
-//    size_t i_e_bo_down = indexRecompose(std::array<size_t,3>{y,x,z-1,1},std::array<size_t,5>{ny,nx,nlyr+1,nstream});
-//    size_t i_e_br_out = indexRecompose(std::array<size_t,3>{y,x+1,z,3},std::array<size_t,5>{ny,nx,nlyr+1,nstream});
-//    size_t i_e_tr_out = indexRecompose(std::array<size_t,3>{y,x+1,z,5},std::array<size_t,5>{ny,nx,nlyr+1,nstream});
-//    size_t i_e_bf_out = indexRecompose(std::array<size_t,3>{y+1,x,z,7},std::array<size_t,5>{ny,nx,nlyr+1,nstream});
-//    size_t i_e_tf_out = indexRecompose(std::array<size_t,3>{y+1,x,z,9},std::array<size_t,5>{ny,nx,nlyr+1,nstream});
+//    //downward streams
+//    idown[0] = indexRecompose(std::array<size_t,3>{y,x,z,1},std::array<size_t,5>{ny,nx,nlyr+1,nstream});
+//    idown[1] = indexRecompose(std::array<size_t,3>{y,x,z,5},std::array<size_t,5>{ny,nx,nlyr+1,nstream});
+//    idown[2] = indexRecompose(std::array<size_t,3>{y,x+1,z,4},std::array<size_t,5>{ny,nx,nlyr+1,nstream});
+//    idown[3] = indexRecompose(std::array<size_t,3>{y,x,z,9},std::array<size_t,5>{ny,nx,nlyr+1,nstream});
+//    idown[4] = indexRecompose(std::array<size_t,3>{y+1,x,z,8},std::array<size_t,5>{ny,nx,nlyr+1,nstream});
+//    idown[5] = indexRecompose(std::array<size_t,3>{y,x,z-1,1},std::array<size_t,5>{ny,nx,nlyr+1,nstream});
+//    idown[6] = indexRecompose(std::array<size_t,3>{y,x,z,2},std::array<size_t,5>{ny,nx,nlyr+1,nstream});
+//    idown[7] = indexRecompose(std::array<size_t,3>{y,x+1,z,3},std::array<size_t,5>{ny,nx,nlyr+1,nstream});
+//    idown[8] = indexRecompose(std::array<size_t,3>{y,x,z,6},std::array<size_t,5>{ny,nx,nlyr+1,nstream});
+//    idown[9] = indexRecompose(std::array<size_t,3>{y+1,x,z,7},std::array<size_t,5>{ny,nx,nlyr+1,nstream});
+//    
+//    //upward streams
+//    iup[0] = indexRecompose(std::array<size_t,3>{y,x,z,0},std::array<size_t,5>{ny,nx,nlyr+1,nstream});
+//    iup[1] = indexRecompose(std::array<size_t,3>{y,x,z,4},std::array<size_t,5>{ny,nx,nlyr+1,nstream});
+//    iup[2] = indexRecompose(std::array<size_t,3>{y,x+1,z,5},std::array<size_t,5>{ny,nx,nlyr+1,nstream});
+//    iup[3] = indexRecompose(std::array<size_t,3>{y,x,z,8},std::array<size_t,5>{ny,nx,nlyr+1,nstream});
+//    iup[4] = indexRecompose(std::array<size_t,3>{y+1,x,z,9},std::array<size_t,5>{ny,nx,nlyr+1,nstream});
+//    iup[5] = indexRecompose(std::array<size_t,3>{y,x,z-1,0},std::array<size_t,5>{ny,nx,nlyr+1,nstream});
+//    iup[6] = indexRecompose(std::array<size_t,3>{y,x,z,3},std::array<size_t,5>{ny,nx,nlyr+1,nstream});
+//    iup[7] = indexRecompose(std::array<size_t,3>{y,x+1,z,2},std::array<size_t,5>{ny,nx,nlyr+1,nstream});
+//    iup[8] = indexRecompose(std::array<size_t,3>{y,x,z,7},std::array<size_t,5>{ny,nx,nlyr+1,nstream});
+//    iup[9] = indexRecompose(std::array<size_t,3>{y+1,x,z,6},std::array<size_t,5>{ny,nx,nlyr+1,nstream});
 //
 //
-//    //inward streams upper half
-//    index_in[0] = i_e_t_down;
-//    index_in[1] = i_e_tl_in;
-//    index_in[2] = i_e_tr_in;
-//    index_in[3] = i_e_tba_in;
-//    index_in[4] = i_e_tf_in;
-//    //inward streams lower half
-//    index_in[5] = i_e_bo_up;
-//    index_in[6] = i_e_bl_in;
-//    index_in[7] = i_e_br_in;
-//    index_in[8] = i_e_bba_in;
-//    index_in[9] = i_e_bf_in;
-//   
-//    //outward streams upper half
-//    index_out[5] = i_e_t_up;
-//    index_out[6] = i_e_tl_out;
-//    index_out[7] = i_e_tr_out;
-//    index_out[8] = i_e_tba_out;
-//    index_out[9] = i_e_tf_out;
-//    //outward streams lower half
-//    index_out[0] = i_e_bo_down;
-//    index_out[1] = i_e_bl_out;
-//    index_out[2] = i_e_br_out;
-//    index_out[3] = i_e_bba_out;
-//    index_out[4] = i_e_bf_out;
+//
+//
+//    for(size_t i = 0; i<nstreams; ++i){
+//        
+//        Ldown += Et[idown[i]]*w[i]/cos[i];
+//        Lup += Et[iup[i]]*w[i]/cos[i];
+//
+//    }
+//
+//
+//
 //
 //
 //
@@ -390,23 +380,30 @@ std::array<double,3> calc_Ldiff(const Ray& ray, double dx, double dy, const std:
         for(size_t j = 0; j < nphi; ++j) {
             //Eigen::Vector3d lvec = angleToVec(mu[i],phi[j]);
             Eigen::Vector3d lvec;
-            for(size_t x = 0; x<3; ++x) {
-                size_t li = indexRecompose(std::array<size_t,3>{i,j,x}, std::array<size_t,3>{nmu,nphi,3});
-                lvec[x] = streams[li];
-            }
+            //for(size_t x = 0; x<3; ++x) {
+            //    size_t li = indexRecompose(std::array<size_t,3>{i,j,x}, std::array<size_t,3>{nmu,nphi,3});
+            //    lvec[x] = streams[li];
+            //}
 
-            auto muscatter = (-ray.d).dot(lvec); 
+            //double muscatter = (-ray.d).dot(lvec); 
+            //double muscatter = -ray.d[0] * lvec[0] - ray.d[1] * lvec[1] - ray.d[2] * lvec[2];
             double weight = wmu[i] * wphi[j];
             //std::cout << " x=" <<  x << " y=" << y << " z= " << z << " imu= " << i << " iphi= " << j << "\n";
             size_t index_t = indexRecompose(std::array<size_t,5>{x,y,z+1,i,j},std::array<size_t,5>{nx,ny,nlyr+1,nmu,nphi});
             size_t index_b = indexRecompose(std::array<size_t,5>{x,y,z,i,j},std::array<size_t,5>{nx,ny,nlyr+1,nmu,nphi});
             
-            if(0==1){
-                pf = weight * phase_HG(g1, muscatter); //g1!!!!!!!!!
+            if(g1==0){
+                //pf = weight * phase_HG(g1, muscatter); //g1!!!!!!!!!
+                pf = weight * 1./(4*M_PI);
                 //sum_pf += pf;
                 //std::cout << "muscatter = " << muscatter << "\n";
             }
             else{
+                for(size_t x = 0; x<3; ++x) {
+                    size_t li = indexRecompose(std::array<size_t,3>{i,j,x}, std::array<size_t,3>{nmu,nphi,3});
+                    lvec[x] = streams[li];
+                }
+                double muscatter = (-ray.d).dot(lvec);
                 pf = weight * calc_pHG(wmu_s, wmu_e, phi[j], wphi[j], ray, g1, nsub, substreams,i,j,nmu,nphi);
             }
             //std::cout << "rad oben: " << rad[index_t] << "   rad unten: " << rad[index_b] << "  pf =  " << pf << "   alpha= " << alpha << "     beta = " << beta << "\n"; 
@@ -509,7 +506,7 @@ void calc_image(auto grid, auto cam, double Nxpixel, double Nypixel, double dx, 
             gRdir_i[j+i*Nxpixel]        = gRdir * exp(-optical_thickness);
             gRdiff_i[j+i*Nxpixel]       = gRdiff * exp(-optical_thickness);
            
-
+            std::cout << "Pixel " << i << " ," << j << " done." << "\n";
         }
     }
  
@@ -616,4 +613,79 @@ void print_parameters(std::string radpath, std::string flxpath, std::string oppa
 
 
 }
+
+void configparser(std::string fname, std::string& radfn, std::string& flxfn, std::string& opfn, std::string& outfn, double& dx, double& dy, double& albedo, \
+        int& xpixel, int& ypixel, double& fov_phi1, double& fov_phi2, double& fov_theta1, double& fov_theta2, double& xloc, double& yloc, \
+        double& zloc, int& nsub){
+
+    ///////default values//////
+    radfn = "../radiances/rad_testcases/checkerboard_full/rad_checkerboard.nc";
+    flxfn = "../radiances/rad_testcases/checkerboard_full/flx_checkerboard.nc";
+    opfn = "../radiances/rad_testcases/checkerboard_full/op_checkerboard.nc";
+    outfn = "output2d_default_checkerboard.nc";
+    dx = 1;
+    dy = 1;
+    albedo = 0.2;
+    xpixel = 100; 
+    ypixel = 100; 
+    fov_phi1 = -225;
+    fov_phi2 = -135;
+    fov_theta1 = 45; 
+    fov_theta2 = 135;
+    xloc = 0; //in km
+    yloc = 0;
+    zloc = 0;
+    nsub = 1;
+    //////////////////////////
+
+    std::ifstream file(fname);
+    if(file.is_open())
+    {
+        std::string line;
+        while(getline(file,line))
+        {
+
+            line.erase(std::remove_if(line.begin(), line.end(), isspace), line.end());
+            if(line[0] == '#' || line.empty()){continue;}
+
+            auto delimPos = line.find("=");
+            auto name = line.substr(0, delimPos);
+            auto value = line.substr(delimPos + 1);
+
+            if(name == "rad_filename"){ radfn = value; continue;}
+            if(name == "flx_filename"){ flxfn = value; continue;}
+            if(name == "op_filename"){ opfn = value; continue;}
+            if(name == "output_filename"){ outfn = value; continue;}
+            if(name == "dx"){ dx = std::stod(value); continue;}
+            if(name == "dy"){ dy = std::stod(value); continue;}
+            if(name == "albedo"){ albedo = std::stod(value); continue;}
+            if(name == "xpixel"){ xpixel = std::stoi(value); continue;}
+            if(name == "ypixel"){ ypixel = std::stoi(value); continue;}
+            if(name == "fov_phi1"){ fov_phi1 = std::stod(value); continue;}
+            if(name == "fov_phi2"){ fov_phi2 = std::stod(value); continue;}
+            if(name == "fov_theta1"){ fov_theta1 = std::stod(value); continue;}
+            if(name == "fov_theta2"){ fov_theta2 = std::stod(value); continue;}
+            if(name == "xloc"){ xloc = std::stod(value); continue;}
+            if(name == "yloc"){ yloc = std::stod(value); continue;}
+            if(name == "zloc"){ zloc = std::stod(value); continue;}
+            if(name == "nsub"){ nsub = std::stoi(value); continue;}
+            else{ std::cerr << "Name " << name << " not recognized\n";}
+        }
+
+
+    }
+
+    else{
+        std::cerr << "Couldn't open/find config file.\n";
+    }
+
+    file.close();
+
+    std::ifstream inFile(fname);
+    std::ofstream outFile("parameter_logs/config_" + outfn + ".txt");
+
+    outFile << inFile.rdbuf();
+
+}
+
 

@@ -210,25 +210,31 @@ def half_phi(ds, radkey, phikey, outpath=None):
     return out
 
 
-
+names = ["irr_from_10s_twostr_only","irr_from_mystic_mcipa","irr_from_mystic","irr_from_10s_base"]
    
+flxn = ["../radiances/flx_10s_twostr_only.nc","../radiances/job_flx/flx_mcipa.nc","../radiances/job_flx/flx_base_backup.nc","../radiances/flx_10s_base.nc"]
+
+for iflx,fname in enumerate(names):
 
 
+    rad =xr.open_dataset(fname + ".nc")
+    op = xr.open_dataset("test.optical_properties.nc")
+    flx = xr.open_dataset(flxn[iflx])
+    #rad = rad.load()
 
+    rkey = "radiance"
 
-rad =xr.open_dataset("irr_from32x32_myst.nc")
-op = xr.open_dataset("test.optical_properties.nc")
-flx = xr.open_dataset("../radiances/job_flx/mc.flx.spc.nc")
-#rad = rad.load()
+    for div in [1,2,5,10,25,50]:
 
-rkey = "radiance"
+        out_rad, out_op, out_flx = half_levels(rad,rkey,"z",op,flx,div)
+        out_rad.to_netcdf(fname + "_div" +str(int(div)) + ".nc")
+        #out_op.to_netcdf("op_levels_div" + str(int(div)) + ".nc")
+        out_flx.to_netcdf("flx_levels_"+ fname  +"_div" + str(int(div)) + ".nc")
+    
+    rad.close()
+    op.close()
+    flx.close()
 
-for div in [1,2,5,10,25,50]:
-
-    out_rad, out_op, out_flx = half_levels(rad,rkey,"z",op,flx,div)
-    out_rad.to_netcdf("irr_from32x32_myst_zdiv" + str(int(div)) + ".nc")
-    #out_op.to_netcdf("op_levels_div" + str(int(div)) + ".nc")
-    out_flx.to_netcdf("flx_levels_div" + str(int(div)) + ".nc")
 
 #nlist = [50,25,10,5,2,1]
 #for n in nlist:
