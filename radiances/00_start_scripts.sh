@@ -51,13 +51,22 @@ do
 	#simulation data
 	ALBEDO=0.2
 	WAVELENGTH=500  #def: 500
-	SAMPLEGRID="256 256 0.025 0.025" #def 70 1 0.1 1 #should probably be the same as "NX NY DX DY" ?
+    SAMPLEGRID="256 256 0.025 0.025" #def 70 1 0.1 1 #should probably be the same as "NX NY DX DY" ?
 
 	#camera data
-	mc_panorama_view="-240 -120 30 150"   #"phi1 phi2 theta1 theta2"; fov of camera in hor and vert direction; phi=0 -> south; theta=0 -> vertically down 
-	mc_sensorposition="3200 3200 10"          #"x y z"; sensorpos in m
-	mc_sample_grid="120 120"              #"nphi ntheta"; how many samples are taken in each direction; (phi1-phi1)/nphi = camera resolution in phi direction 
-	mc_backward="0 0 119 119"             #"phi_start theta_start phi_end theta_end"; ? should match sample grid, e.g. 90 90 -> 0 0 89 89
+    fov_phi1="-240"
+    fov_phi2="-120"
+    fov_theta1="30"
+    fov_theta2="150"
+    xloc=3.2
+    yloc=3.2
+    zloc=0.01
+    xpixel=120
+    ypixel=120
+	mc_panorama_view="$fov_phi1 $fov_phi2 $fov_theta1 $fov_theta2"   #"phi1 phi2 theta1 theta2"; fov of camera in hor and vert direction; phi=0 -> south; theta=0 -> vertically down 
+    mc_sensorposition="$(($xloc/1000)) $(($yloc/1000)) $((zloc/1000))"          #"x y z"; sensorpos in m
+	mc_sample_grid="$xpixel $ypixel"              #"nphi ntheta"; how many samples are taken in each direction; (phi1-phi1)/nphi = camera resolution in phi direction 
+    mc_backward="0 0 $((xpixel-1)) $((ypixel-1))"             #"phi_start theta_start phi_end theta_end"; ? should match sample grid, e.g. 90 90 -> 0 0 89 89
     cam_photons=10000
     PHOTONS=1000000
 
@@ -70,21 +79,34 @@ do
     bash 02_gen_panorama.sh "$UMUS" "$PHIS" "$SZA" "$PHI0" "$cam_photons" "$LIBRAD" "$WORKDIR" "$ATM" "$ALBEDO" "$WAVELENGTH" "$FNAME" "$mc_panorama_view" "$mc_sensorposition" 
                                 "$mc_sample_grid" "$mc_backward" "$PANDIR"
 
+
 	#output used parameters
 	bash op_parameters.sh "$UMUS" "$PHIS" "$SZA" "$PHI0" "$ZLEV" "$NLAY" "$SAMPLEGRID" "$LIBRAD" "$WORKDIR" "$ATM"
 	
     #waiting for file completion/error checking
-    bash checkforfiles.sh "$UMUS" "$PHIS" "$LIBRAD" "$WORKDIR" "$SAVEDIR"
+    bash checkforfiles.sh "$UMUS" "$PHIS" "$LIBRAD" "$WORKDIR" "$SAVEDIR" "$PANDIR
 
     #generate optical properties and flx file
     bash gen_opprop.sh "$UMUS" "$PHIS" "$LIBRAD" "$SAVEDIR"
 
 	#combine radiances into netcdf
-	python3 mergerads.py -Nmu $NUMU -1 1 -Nphi $NPHIS -radfn rad_testcases/rad_cloud_above_cam__mu${NUMU%.*}_phi${NPHIS%.*}.nc
+	radfn="rad_testcases/rad_cloud_above_cam__mu${NUMU%.*}_phi${NPHIS%.*}.nc"
+    python3 mergerads.py -Nmu $NUMU -1 1 -Nphi $NPHIS -radfn $radfn
+
    
         
+    #generate config
+    outputfn="$TRACEDIR/output2d_checkerboard.nc"
+    nsub=5
+    bash gen_config.sh "$radfn" "$SAVEDIR/test.optical_properties.nc" "$SAVEDIR/mc.flx.spc.nc" "$outputfn" "$DX" "$DY" "$ALBEDO" "$xpixel" "$ypixel" "$fov_phi1" "$fov_phi2" 
+                        "$fov_theta1" "$fov_theta2" "$xloc" "$yloc" "$zloc" "$nsub" "$TRACEDIR"
+   
+    $TRACEDIR/trace_optical_thickness
+    ((ncview $outputfn)&)
+    ((ncview $PANDIR/mc.rad.spc.nc)&)
 
-    
+
+
 
 
 

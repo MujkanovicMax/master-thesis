@@ -7,7 +7,7 @@ PHIS=$2
 LIBRAD=$3
 WORKDIR=$4
 SAVEDIR=$5
-
+PANDIR=$6
 
 FLAG=0
 END=$(($UMUS*$PHIS))
@@ -28,6 +28,14 @@ do
 done
 done
 done
+
+#while :
+#do
+#    cd $PANDIR
+#    if [ -e mc.rad.spc.nc ]; then break; fi
+#done
+
+
 
 
 
