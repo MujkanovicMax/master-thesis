@@ -8,10 +8,10 @@ LIBRAD=$WORKDIR/libRadtran
 SAVEDIR=$WORKDIR/radiances/rad_test
 PANDIR=$SAVEDIR/job_panorama_cam_below_clouds
 TRACEDIR=$WORKDIR/trace_test
-ATM=$WORKDIR/stdatm/afglus_philipp_12345.dat  #def: $WORKDIR/stdatm/afglus_mgl.dat
+ATM=$WORKDIR/stdatm/afglus_checkerboard.dat  
 
-nm="16"     # 1 2 4 6 8 10 16 32
-np="16"
+nm="4"     # 1 2 4 6 8 10 16 32
+np="4"
 
 for i in $nm
 do
@@ -35,13 +35,13 @@ do
 	ZLEVno0=$( echo $ZLEV | sed "s/^[^ ]* /-999 /" )
 
 	#cloud data
-	FNAME="/project/meteo/work/Mujkanovic.Max/maproject/radiances/rad_philipp/cloud_data/phillip1_0d_25m_srfc.wc.t8880.0.avg1.lwc_column.nc"  #def: "wc3D.dat" 
+	FNAME="wc3d_checkerboard_full.dat"  #def: "wc3D.dat" 
 	
     ### only necessary if you make clouds via script(gen clouds script)########################################
-    NX=256 #def 70              #NX NY define the grid for cloud boxes, e.g. NX=6 NY=6 means a 6x6 grid
-	NY=256  #def 1
-	DX=0.025      #def 0.1        #DX DY define the grid extent in km
-	DY=0.025 #def 1
+    NX=2 #def 70              #NX NY define the grid for cloud boxes, e.g. NX=6 NY=6 means a 6x6 grid
+	NY=2  #def 1
+	DX=1      #def 0.1        #DX DY define the grid extent in km
+	DY=1 #def 1
     CLDX="1 "         #$( seq 30 40 )        #CLDX CLDY define the gridboxes in which to put clouds (like coordinates;gridbox count starts from 1) 
 	CLDY="1"
 	CLDZ=$( seq 3 52 )                     #$( seq 1 50 )      #CLDZ layernumber in which to put clouds
@@ -52,23 +52,23 @@ do
 	#simulation data
 	ALBEDO=0.2
 	WAVELENGTH=500  #def: 500
-    SAMPLEGRID="256 256 0.025 0.025" #def 70 1 0.1 1 #should probably be the same as "NX NY DX DY" ?
+    SAMPLEGRID="2 2 1 1" #def 70 1 0.1 1 #should probably be the same as "NX NY DX DY" ?
 
 	#camera data
-    fov_phi1="-240"
-    fov_phi2="-120"
-    fov_theta1="30"
-    fov_theta2="150"
-    xloc=3.2
-    yloc=3.2
-    zloc=0.01
+    fov_phi1="-45"
+    fov_phi2="45"
+    fov_theta1="45"
+    fov_theta2="135"
+    xloc=1  #in km
+    yloc=1
+    zloc=5
     xpixel=120
     ypixel=120
 	mc_panorama_view="$fov_phi1 $fov_phi2 $fov_theta1 $fov_theta2"   #"phi1 phi2 theta1 theta2"; fov of camera in hor and vert direction; phi=0 -> south; theta=0 -> vertically down 
     mc_sensorposition="$(($xloc/1000)) $(($yloc/1000)) $((zloc/1000))"          #"x y z"; sensorpos in m
 	mc_sample_grid="$xpixel $ypixel"              #"nphi ntheta"; how many samples are taken in each direction; (phi1-phi1)/nphi = camera resolution in phi direction 
     mc_backward="0 0 $((xpixel-1)) $((ypixel-1))"             #"phi_start theta_start phi_end theta_end"; ? should match sample grid, e.g. 90 90 -> 0 0 89 89
-    cam_photons=10000
+    cam_photons=1000
     PHOTONS=1000000
 
 
@@ -85,7 +85,7 @@ do
 	bash op_parameters.sh "$UMUS" "$PHIS" "$SZA" "$PHI0" "$ZLEV" "$NLAY" "$SAMPLEGRID" "$LIBRAD" "$WORKDIR" "$ATM"
 	
     #waiting for file completion/error checking
-    bash checkforfiles.sh "$UMUS" "$PHIS" "$LIBRAD" "$WORKDIR" "$SAVEDIR" "$PANDIR
+    bash checkforfiles.sh "$UMUS" "$PHIS" "$LIBRAD" "$WORKDIR" "$SAVEDIR" "$PANDIR"
 
     #generate optical properties and flx file
     bash gen_opprop.sh "$UMUS" "$PHIS" "$LIBRAD" "$SAVEDIR"
