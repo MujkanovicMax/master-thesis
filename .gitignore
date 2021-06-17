@@ -27,6 +27,7 @@ rayli/
 *.job
 *.spc
 *.pyc
+*.swp
 randomseed
 DEADJOE
 #####
