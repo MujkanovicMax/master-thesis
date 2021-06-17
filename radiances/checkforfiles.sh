@@ -8,11 +8,13 @@ LIBRAD=$3
 WORKDIR=$4
 SAVEDIR=$5
 PANDIR=$6
+nmu=$7
+nphi=$8
 
 FLAG=0
-END=$(($UMUS*$PHIS))
+END=$(($nmu*$nphi))
 
-while [ $FLAG ! -eq $END ]
+while [ $FLAG != $END ]
 do
     FLAG=0
 for umu in ${UMUS}
@@ -20,7 +22,7 @@ do
 for phi in ${PHIS}
 do
     cd $SAVEDIR
-    JOBDIR=$SAVEDIR/job_mu${NM}/job_${umu}_${phi}
+    JOBDIR=$SAVEDIR/job_mu${nmu}/job_${umu}_${phi}
     cd $JOBDIR
     if [ ! -e mc.rad.spc.nc ]; then continue; fi
     if [ ! -e mc.flx.spc.nc ]; then continue; fi
@@ -29,11 +31,11 @@ done
 done
 done
 
-#while :
-#do
-#    cd $PANDIR
-#    if [ -e mc.rad.spc.nc ]; then break; fi
-#done
+while :
+do
+    cd $PANDIR
+    if [ -e mc.rad.spc.nc ]; then break; fi
+done
 
 
 

@@ -3,12 +3,12 @@ set -eu -o pipefail
 
 
 #directories
-WORKDIR=$WORK/testgit/ma-project
+WORKDIR=$HOME/testgit/ma-project   ###dir of repo
 LIBRAD=$WORKDIR/libRadtran
 SAVEDIR=$WORKDIR/radiances/rad_test
 PANDIR=$SAVEDIR/job_panorama_cam_below_clouds
 TRACEDIR=$WORKDIR/trace_test
-ATM=$WORKDIR/stdatm/afglus_checkerboard.dat  
+ATM=$WORKDIR/radiances/stdatm/afglus_checkerboard.dat  
 
 nm="4"     # 1 2 4 6 8 10 16 32
 np="4"
@@ -77,15 +77,15 @@ do
 	#script execution
 	#bash 03_gen_cloud.sh "$FNAME" "$ATM" "$NX" "$NY" "$DX" "$DY" "$CLDX" "$CLDY" "$CLDZ" "$ZLEV" "$NLAY" "$CR" "$LWC"
     bash 01_gen_radiance_jobs.sh "$UMUS" "$PHIS" "$SZA" "$PHI0" "$LIBRAD" "$WORKDIR" "$ATM" "$ALBEDO" "$WAVELENGTH" "$SAMPLEGRID" "$FNAME" "$ZLEVno0" "$PHOTONS" "$NUMU" "$SAVEDIR"
-    bash 02_gen_panorama.sh "$UMUS" "$PHIS" "$SZA" "$PHI0" "$cam_photons" "$LIBRAD" "$WORKDIR" "$ATM" "$ALBEDO" "$WAVELENGTH" "$FNAME" "$mc_panorama_view" "$mc_sensorposition" 
-                                "$mc_sample_grid" "$mc_backward" "$PANDIR"
+    bash 02_gen_panorama.sh "$UMUS" "$PHIS" "$SZA" "$PHI0" "$cam_photons" "$LIBRAD" "$WORKDIR" "$ATM" "$ALBEDO" "$WAVELENGTH" "$FNAME" "$mc_panorama_view" \
+        "$mc_sensorposition" "$mc_sample_grid" "$mc_backward" "$PANDIR"
 
 
 	#output used parameters
 	bash op_parameters.sh "$UMUS" "$PHIS" "$SZA" "$PHI0" "$ZLEV" "$NLAY" "$SAMPLEGRID" "$LIBRAD" "$WORKDIR" "$ATM"
 	
     #waiting for file completion/error checking
-    bash checkforfiles.sh "$UMUS" "$PHIS" "$LIBRAD" "$WORKDIR" "$SAVEDIR" "$PANDIR"
+    bash checkforfiles.sh "$UMUS" "$PHIS" "$LIBRAD" "$WORKDIR" "$SAVEDIR" "$PANDIR" "$nm" "$np"
 
     #generate optical properties and flx file
     bash gen_opprop.sh "$UMUS" "$PHIS" "$LIBRAD" "$SAVEDIR"
