@@ -3,10 +3,11 @@ set -eu -o pipefail
 
 
 #directories
-LIBRAD=$WORK/maproject/libRadtran
-WORKDIR=$(pwd)
-SAVEDIR=/project/meteo-scratch/Mujkanovic.Max/rad_philipp_new
+WORKDIR=$WORK/testgit/ma-project
+LIBRAD=$WORKDIR/libRadtran
+SAVEDIR=$WORKDIR/radiances/rad_test
 PANDIR=$SAVEDIR/job_panorama_cam_below_clouds
+TRACEDIR=$WORKDIR/trace_test
 ATM=$WORKDIR/stdatm/afglus_philipp_12345.dat  #def: $WORKDIR/stdatm/afglus_mgl.dat
 
 nm="16"     # 1 2 4 6 8 10 16 32
