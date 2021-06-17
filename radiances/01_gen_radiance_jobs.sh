@@ -16,6 +16,7 @@ ZLEV=${12}
 PHOTONS=${13}
 NM=${14}
 SAVEDIR=${15}
+CLOUDDIR=${16}
 
 for umu in ${UMUS}
 do
@@ -61,11 +62,11 @@ cat > $JOBDIR/slurm.job << EOF
 #SBATCH --mail-user=Mujkanovic.Max@physik.uni-muenchen.de
 cd $JOBDIR
 
-if [ ! -e $FNAME ]; then  ln -s $WORKDIR/$FNAME; fi
+if [ ! -e $FNAME ]; then  ln -s $CLOUDDIR/$FNAME; fi
 if [ ! -e mc.flx.spc ]; then $LIBRAD/bin/uvspec -f uvspec.inp > out.data || exit 1; fi
-if [ ! -e 04_convertToNetCDF.sh ]; then ln -s $WORKDIR/04_convertToNetCDF.sh; fi
+if [ ! -e 04_convertToNetCDF.sh ]; then ln -s $WORKDIR/radiances/04_convertToNetCDF.sh; fi
 bash 04_convertToNetCDF.sh 
-if [ ! -e convert_flx2nc.sh ]; then ln -s $WORKDIR/convert_flx2nc.sh; fi
+if [ ! -e convert_flx2nc.sh ]; then ln -s $WORKDIR/radiances/convert_flx2nc.sh; fi
 bash convert_flx2nc.sh
 rm -f mc*{.rad,.rad.std,.flx,.flx.std}
 EOF

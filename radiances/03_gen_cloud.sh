@@ -16,8 +16,9 @@ function gen_cld {
         NLAY=${11}
 	CR=${12}
 	LWC=${13}
+    CLOUDDIR=${14}
 
-        cat > $FNAME << EOF
+        cat > $CLOUDDIR/$FNAME << EOF
 $NX $NY $NLAY 3
 $DX $DY $ZLEV
 EOF
