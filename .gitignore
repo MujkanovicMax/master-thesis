@@ -13,6 +13,7 @@ radiances/backups/
 radiances/*.nc
 radiances/rad_testcases
 radiances/rad_testcases/
+radiances/**
 rayli
 rayli/
 *.nc
@@ -36,3 +37,5 @@ DEADJOE
 !wc3d_checkerboard_full.dat
 !wc3D.dat
 !wc3d.dat
+!radiances/clouds
+!radiances/stdatm
