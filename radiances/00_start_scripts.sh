@@ -8,6 +8,7 @@ LIBRAD=$WORKDIR/libRadtran
 SAVEDIR=$WORKDIR/radiances/rad_test
 PANDIR=$SAVEDIR/job_panorama_cam_below_clouds
 TRACEDIR=$WORKDIR/trace_test
+CLOUDDIR=$WORKDIR/radiances/clouds
 ATM=$WORKDIR/radiances/stdatm/afglus_checkerboard.dat  
 
 nm="4"     # 1 2 4 6 8 10 16 32
