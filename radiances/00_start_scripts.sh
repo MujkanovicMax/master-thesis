@@ -81,29 +81,33 @@ do
     bash 02_gen_panorama.sh "$UMUS" "$PHIS" "$SZA" "$PHI0" "$cam_photons" "$LIBRAD" "$WORKDIR" "$ATM" "$ALBEDO" "$WAVELENGTH" "$FNAME" "$mc_panorama_view" \
         "$mc_sensorposition" "$mc_sample_grid" "$mc_backward" "$PANDIR" "$CLOUDDIR"
 
-
+    
 	#output used parameters
 	bash op_parameters.sh "$UMUS" "$PHIS" "$SZA" "$PHI0" "$ZLEV" "$NLAY" "$SAMPLEGRID" "$LIBRAD" "$WORKDIR" "$ATM"
-	
+    
     #waiting for file completion/error checking
-    bash checkforfiles.sh "$UMUS" "$PHIS" "$LIBRAD" "$WORKDIR" "$SAVEDIR" "$PANDIR" "$nm" "$np"
+    bash checkforfiles.sh "$UMUS" "$PHIS" "$LIBRAD" "$WORKDIR" "$SAVEDIR" "$PANDIR" "$i" "$j"
+    echo "All files generated"
 
     #generate optical properties and flx file
-    bash gen_opprop.sh "$UMUS" "$PHIS" "$LIBRAD" "$SAVEDIR"
-
+    bash gen_opprop.sh "$UMUS" "$PHIS" "$FNAME" "$LIBRAD" "$SAVEDIR" "$CLOUDDIR" "$i"
+    
+    echo "Merging files ..."
 	#combine radiances into netcdf
-	radfn="rad_testcases/rad_cloud_above_cam__mu${NUMU%.*}_phi${NPHIS%.*}.nc"
-    python3 mergerads.py -Nmu $NUMU -1 1 -Nphi $NPHIS -radfn $radfn
-
+	radfn="$SAVEDIR/rad_test.nc"
+    python3 mergerads.py -Nmu $NUMU -1 1 -Nphi $NPHIS -radfn $radfn -loc $SAVEDIR
+    echo Done.
    
         
     #generate config
-    outputfn="$TRACEDIR/output2d_checkerboard.nc"
+    outputfn="$TRACEDIR/output2d_test.nc"
     nsub=5
-    bash gen_config.sh "$radfn" "$SAVEDIR/test.optical_properties.nc" "$SAVEDIR/mc.flx.spc.nc" "$outputfn" "$DX" "$DY" "$ALBEDO" "$xpixel" "$ypixel" "$fov_phi1" "$fov_phi2" 
-                        "$fov_theta1" "$fov_theta2" "$xloc" "$yloc" "$zloc" "$nsub" "$TRACEDIR"
-   
-    $TRACEDIR/trace_optical_thickness
+    bash gen_config.sh "$radfn" "$SAVEDIR/test.optical_properties.nc" "$SAVEDIR/mc.flx.spc.nc" "$outputfn" "$DX" "$DY" "$ALBEDO" "$xpixel" "$ypixel" "$fov_phi1" "$fov_phi2" \
+        "$fov_theta1" "$fov_theta2" "$xloc" "$yloc" "$zloc" "$nsub" "$TRACEDIR"
+    
+    cd $TRACEDIR
+    ./trace_optical_thickness
+    cd -
     ((ncview $outputfn)&)
     ((ncview $PANDIR/mc.rad.spc.nc)&)
 

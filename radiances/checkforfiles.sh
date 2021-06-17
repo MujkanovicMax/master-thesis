@@ -17,6 +17,7 @@ END=$(($nmu*$nphi))
 while [ $FLAG != $END ]
 do
     FLAG=0
+
 for umu in ${UMUS}
 do
 for phi in ${PHIS}
@@ -26,10 +27,11 @@ do
     cd $JOBDIR
     if [ ! -e mc.rad.spc.nc ]; then continue; fi
     if [ ! -e mc.flx.spc.nc ]; then continue; fi
-    ((FLAG++))
+    ((FLAG=FLAG+1))
 done
 done
 done
+
 
 while :
 do

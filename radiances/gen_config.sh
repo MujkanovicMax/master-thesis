@@ -21,8 +21,8 @@ zloc=${16}
 nsub=${17}
 TRACEDIR=${18}
 
-cd $TRACEDIR
-cat > config.txt << EOFJOB
+
+cat > $TRACEDIR/config.txt << EOFJOB
 rad_filename = $radfn
 flx_filename = $flxfn
 op_filename = $opfn

@@ -60,7 +60,7 @@ cat > $JOBDIR/slurm.job << EOF
 #SBATCH --nodes=1
 #SBATCH --partition=cluster,met-ws
 #SBATCH --mem=25G
-#SBATCH --time=36:00:00
+#SBATCH --time=12:00:00
 #SBATCH --output=$JOBDIR/log.%j.out
 #SBATCH --error=$JOBDIR/log.%j.err
 #SBATCH --mail-type=END
@@ -68,7 +68,7 @@ cat > $JOBDIR/slurm.job << EOF
 
 
 cd $JOBDIR
-if [ ! -e $FNAME ]; then  ln -s $CLOUDDIR/$FNAME; fi
+if [ ! -e $FNAME ]; then ln -s $CLOUDDIR/$FNAME; fi
 if [ ! -e out.data ]; then
 $LIBRAD/bin/uvspec -f uvspec_panorama.inp > out_panorama.data
 fi
