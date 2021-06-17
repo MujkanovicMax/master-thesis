@@ -16,10 +16,10 @@ mc_panorama_view=${12}
 mc_sensorposition=${13}
 mc_sample_grid=${14}
 mc_backward=${15}
-SAVEDIR=${16}
+PANDIR=${16}
+CLOUDDIR=${17}
 
-
-JOBDIR=$SAVEDIR
+JOBDIR=$PANDIR
 if [ ! -e $JOBDIR ]; then mkdir -p $JOBDIR; fi
 echo $JOBDIR
 cp $ATM $JOBDIR/

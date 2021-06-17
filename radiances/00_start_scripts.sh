@@ -6,7 +6,7 @@ set -eu -o pipefail
 WORKDIR=$HOME/testgit/ma-project   ###dir of repo
 LIBRAD=$WORKDIR/libRadtran
 SAVEDIR=$WORKDIR/radiances/rad_test
-PANDIR=$SAVEDIR/job_panorama_cam_below_clouds
+PANDIR=$SAVEDIR/job_panorama
 TRACEDIR=$WORKDIR/trace_test
 CLOUDDIR=$WORKDIR/radiances/clouds
 ATM=$WORKDIR/radiances/stdatm/afglus_checkerboard.dat  
@@ -79,7 +79,7 @@ do
 	#bash 03_gen_cloud.sh "$FNAME" "$ATM" "$NX" "$NY" "$DX" "$DY" "$CLDX" "$CLDY" "$CLDZ" "$ZLEV" "$NLAY" "$CR" "$LWC" "$CLOUDDIR"
     bash 01_gen_radiance_jobs.sh "$UMUS" "$PHIS" "$SZA" "$PHI0" "$LIBRAD" "$WORKDIR" "$ATM" "$ALBEDO" "$WAVELENGTH" "$SAMPLEGRID" "$FNAME" "$ZLEVno0" "$PHOTONS" "$NUMU" "$SAVEDIR" "$CLOUDDIR"
     bash 02_gen_panorama.sh "$UMUS" "$PHIS" "$SZA" "$PHI0" "$cam_photons" "$LIBRAD" "$WORKDIR" "$ATM" "$ALBEDO" "$WAVELENGTH" "$FNAME" "$mc_panorama_view" \
-        "$mc_sensorposition" "$mc_sample_grid" "$mc_backward" "$PANDIR"
+        "$mc_sensorposition" "$mc_sample_grid" "$mc_backward" "$PANDIR" "$CLOUDDIR"
 
 
 	#output used parameters
