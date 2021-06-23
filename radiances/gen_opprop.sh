@@ -8,7 +8,8 @@ FNAME=$3
 LIBRAD=$4
 SAVEDIR=$5
 CLOUDDIR=$6
-nmu=$7
+WORKDIR=$7
+nmu=$8
 
 for umu in ${UMUS}
 do
@@ -26,6 +27,8 @@ do
 done
 done
 
+
+#python3 $WORKDIR/radiances/check_opprop.py
 
     
 

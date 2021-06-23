@@ -69,11 +69,11 @@ cat > $JOBDIR/slurm.job << EOF
 
 cd $JOBDIR
 if [ ! -e $FNAME ]; then ln -s $CLOUDDIR/$FNAME; fi
-if [ ! -e out.data ]; then
+if [ ! -e mc.rad.spc ]; then
 $LIBRAD/bin/uvspec -f uvspec_panorama.inp > out_panorama.data
 fi
 if [ ! -e 04_convertToNetCDF.sh ]; then ln -s $WORKDIR/radiances/04_convertToNetCDF.sh; fi
-bash 04_convertToNetCDF.sh
+if [ ! -e mc.rad.spc.nc ]; then bash 04_convertToNetCDF.sh; fi
 cd $WORKDIR
 EOF
 

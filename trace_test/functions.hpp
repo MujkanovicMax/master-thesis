@@ -438,7 +438,6 @@ void calc_image(auto grid, auto cam, double Nxpixel, double Nypixel, double dx, 
     std::cout << "Starting Raytracer..." << "\n";
     
     for(size_t i = 0; i < Nypixel; ++i) {
-        
         double ypx = (i + 0.5) / Nypixel;
         
         for(size_t j = 0; j < Nxpixel; ++j) {
@@ -454,11 +453,8 @@ void calc_image(auto grid, auto cam, double Nxpixel, double Nypixel, double dx, 
             double Ldirs = 0;
             double Ldiffs = 0;
             size_t groundidx;
-
             for(auto slice: grid.walk_along(ray, 0., std::numeric_limits<double>::infinity())) {
-                
                 if(auto pvol = std::get_if<VolumeSlice>(&slice)) {
-                    
                     //index calculations ( 3D -> 1D, 1D -> 3D )
                     auto [x,y,z] = indexDecompose<3>(pvol->idx, {nx,ny,nlyr});
                     a = x;

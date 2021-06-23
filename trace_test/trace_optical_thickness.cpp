@@ -38,35 +38,36 @@ int main(int argc, char** argv) {
             std::string outputfname = "output2d_philipp_test";
 
             // Grid Parameters 
-            double dx = 0.025;
-            double dy = 0.025;
-            double albedo = 0.2;
+            double dx;
+            double dy;
+            double albedo;
 
             // Camera parameters and camera declaration
-            int Nxpixel = 20;
-            int Nypixel = 20;
+            int Nxpixel;
+            int Nypixel;
             double fov = 2;
-            double fov_phi1 = -45;
-            double fov_phi2 = -45;
-            double fov_theta1 = 45;
-            double fov_theta2 = 135;
-            double xloc = 1; //in km
-            double yloc = 1;
-            double zloc = 5;
-            auto loc = Eigen::Vector3d{xloc,yloc,zloc};     
-            double fovx = fov;
-            double fovy = fov * Nxpixel / Nypixel;
-            size_t rays = Nxpixel*Nypixel;
-            auto cam = MysticPanoramaCamera(loc, 0, 0, fov_phi1, fov_phi2, fov_theta1, fov_theta2, rays); 
+            double fov_phi1;
+            double fov_phi2;
+            double fov_theta1;
+            double fov_theta2;
+            double xloc; //in km
+            double yloc;
+            double zloc;
+            
 
             //Subdivisions for Substreams
-            int nsub = 5; //50;
+            int nsub; //50;
             
 
             //Parsing config file
             std::string configname = "config.txt";
             configparser(configname, radfpath, flxfpath, opfpath, outputfname, dx, dy, albedo, Nxpixel, Nypixel, fov_phi1, fov_phi2, fov_theta1, fov_theta2, xloc, yloc, zloc, nsub);
 
+            auto loc = Eigen::Vector3d{xloc,yloc,zloc};     
+            double fovx = fov;
+            double fovy = fov * Nxpixel / Nypixel;
+            size_t rays = Nxpixel*Nypixel;
+            auto cam = MysticPanoramaCamera(loc, 0, 0, fov_phi1, fov_phi2, fov_theta1, fov_theta2, rays); 
             std::cout << "Reading netcdf data" << "\n\n";
             std::cout << "radfpath = " << radfpath << "\n";
             std::cout << "flxfpath = " << flxfpath << "\n";
@@ -120,6 +121,10 @@ int main(int argc, char** argv) {
             //Grid declaration
             auto mgrid = rayli::vgrid::MysticCloud(dx, dy, nx, ny, zlev);
             auto grid = rayli::vgrid::Cyclic(mgrid, {{0, 0, -std::numeric_limits<double>::infinity()},{nx*dx, ny*dy, std::numeric_limits<double>::infinity()}});
+            std::cout << "wah\n";
+            auto ray = cam.compute_ray(Eigen::Vector2d{0, 0});
+            std::cout << "wah2\n";
+            grid.walk_along(ray, 0., std::numeric_limits<double>::infinity());
 
             //outputting parameters 
             std::cout << "\nCamera parameters:\n\n" << "X Pixel: " << Nxpixel << "    Y Pixel: " << Nypixel << "\n";

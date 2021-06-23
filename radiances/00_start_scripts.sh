@@ -45,9 +45,9 @@ do
 	DY=1 #def 1
     CLDX="1 "         #$( seq 30 40 )        #CLDX CLDY define the gridboxes in which to put clouds (like coordinates;gridbox count starts from 1) 
 	CLDY="1"
-	CLDZ=$( seq 3 52 )                     #$( seq 1 50 )      #CLDZ layernumber in which to put clouds
+	CLDZ=$( seq 2 3 )                     #$( seq 1 50 )      #CLDZ layernumber in which to put clouds
 	CR=10
-	LWC="0.05"
+	LWC="0.5"
     ########################################################################################
 
 	#simulation data
@@ -66,7 +66,7 @@ do
     xpixel=120
     ypixel=120
 	mc_panorama_view="$fov_phi1 $fov_phi2 $fov_theta1 $fov_theta2"   #"phi1 phi2 theta1 theta2"; fov of camera in hor and vert direction; phi=0 -> south; theta=0 -> vertically down 
-    mc_sensorposition="$(($xloc/1000)) $(($yloc/1000)) $((zloc/1000))"          #"x y z"; sensorpos in m
+    mc_sensorposition="$(($xloc*1000)) $(($yloc*1000)) $((zloc*1000))"          #"x y z"; sensorpos in m
 	mc_sample_grid="$xpixel $ypixel"              #"nphi ntheta"; how many samples are taken in each direction; (phi1-phi1)/nphi = camera resolution in phi direction 
     mc_backward="0 0 $((xpixel-1)) $((ypixel-1))"             #"phi_start theta_start phi_end theta_end"; ? should match sample grid, e.g. 90 90 -> 0 0 89 89
     cam_photons=1000
@@ -78,8 +78,8 @@ do
 	#script execution
 	#bash 03_gen_cloud.sh "$FNAME" "$ATM" "$NX" "$NY" "$DX" "$DY" "$CLDX" "$CLDY" "$CLDZ" "$ZLEV" "$NLAY" "$CR" "$LWC" "$CLOUDDIR"
     bash 01_gen_radiance_jobs.sh "$UMUS" "$PHIS" "$SZA" "$PHI0" "$LIBRAD" "$WORKDIR" "$ATM" "$ALBEDO" "$WAVELENGTH" "$SAMPLEGRID" "$FNAME" "$ZLEVno0" "$PHOTONS" "$NUMU" "$SAVEDIR" "$CLOUDDIR"
-    bash 02_gen_panorama.sh "$UMUS" "$PHIS" "$SZA" "$PHI0" "$cam_photons" "$LIBRAD" "$WORKDIR" "$ATM" "$ALBEDO" "$WAVELENGTH" "$FNAME" "$mc_panorama_view" \
-        "$mc_sensorposition" "$mc_sample_grid" "$mc_backward" "$PANDIR" "$CLOUDDIR"
+    #bash 02_gen_panorama.sh "$UMUS" "$PHIS" "$SZA" "$PHI0" "$cam_photons" "$LIBRAD" "$WORKDIR" "$ATM" "$ALBEDO" "$WAVELENGTH" "$FNAME" "$mc_panorama_view" \
+    #    "$mc_sensorposition" "$mc_sample_grid" "$mc_backward" "$PANDIR" "$CLOUDDIR"
 
     
 	#output used parameters
@@ -90,7 +90,7 @@ do
     echo "All files generated"
 
     #generate optical properties and flx file
-    bash gen_opprop.sh "$UMUS" "$PHIS" "$FNAME" "$LIBRAD" "$SAVEDIR" "$CLOUDDIR" "$i"
+    bash gen_opprop.sh "$UMUS" "$PHIS" "$FNAME" "$LIBRAD" "$SAVEDIR" "$CLOUDDIR" "$WORKDIR "$WORKDIR"" "$i"
     
     echo "Merging files ..."
 	#combine radiances into netcdf
@@ -109,7 +109,7 @@ do
     ./trace_optical_thickness
     cd -
     ((ncview $outputfn)&)
-    ((ncview $PANDIR/mc.rad.spc.nc)&)
+    #((ncview $PANDIR/mc.rad.spc.nc)&)
 
 
 
