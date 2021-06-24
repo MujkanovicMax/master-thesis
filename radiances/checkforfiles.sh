@@ -10,6 +10,7 @@ SAVEDIR=$5
 PANDIR=$6
 nmu=$7
 nphi=$8
+rep=$9
 
 FLAG=0
 END=$(($nmu*$nphi))
@@ -33,11 +34,18 @@ done
 done
 
 
-while :
+FLAG=0
+while [ $FLAG != $REP ]
 do
-    cd $PANDIR
-    if [ -e mc.rad.spc.nc ]; then break; fi
+    FLAG=0
+for i in $( seq 0 $rep )
+do
+    cd $PANDIR/panorama_$i
+    if [ ! -e mc.rad.spc.nc ]; then continue; fi
+    ((FLAG=FLAG+1))
 done
+done
+
 
 
 

@@ -9,10 +9,9 @@ import os
 
 
 def mergerads(nmus,m1,m2, nphis, loc, fname="radiances.nc"):
-    #xarray.set_options(file_cache_maxsize
     if os.path.exists(fname):
         print("File " + fname + " already exists. Radiances not merged")
-        return 
+        return 0
 
     mus,wmus = a.gen_mus(nmus,m1,m2)
     phis,wphis = a.gen_phis(nphis)
@@ -27,6 +26,21 @@ def mergerads(nmus,m1,m2, nphis, loc, fname="radiances.nc"):
     print(fname)
     D.to_netcdf(fname)
     D.close()
+
+def mergepan(loc_pan, rep, fname):
+    if os.path.exists(loc_pan + "/" + fname):
+        print("File " + fname + " already exists. Panoramas not merged")
+        return 0
+
+    panorama = xr.open_mfdataset([loc_pan + "panorama_{}/mc.rad.spc.nc".format(i) for i in (np.arange(rep) + 1)], concat_dim="files")
+    panorama = panorama.mean(dim = "files")
+    print("Mean panorama merged. Info: ")
+    print(panorama)
+    panorama.to_netcdf(loc_pan + "/" + fname + ".nc")
+    panorama.close()
+    return 1
+
+
 
 
 def meanE(nmus,m1,m2, nphis, loc,fname="Edir.nc"):
@@ -48,11 +62,16 @@ def _main():
     parser.add_argument('-radfn', type=str)
     parser.add_argument('-meanfn', type=str)
     parser.add_argument('-loc', type=str)
+    parser.add_argument('-locpan', type=str)
+    parser.add_argument('-rep', type=int)
+    parser.add_argument('-panfn', type=str)
 
     args = parser.parse_args()
     
     if args.Nphi is not None and args.Nmu is not None and args.radfn is not None and args.loc is not None:
         mergerads(args.Nmu[0], args.Nmu[1], args.Nmu[2], args.Nphi, args.loc, args.radfn)
+    if args.locpan is not None and args.rep is not None and args.panfn is not None:
+         mergepan(args.locpan, args.rep, args.panfn)
     if args.Nphi is not None and args.Nmu is not None and args.meanfn is not None and args.loc is not None:    
         meanE(args.Nmu[0], args.Nmu[1], args.Nmu[2], args.Nphi, args.loc,args.meanfn)
 

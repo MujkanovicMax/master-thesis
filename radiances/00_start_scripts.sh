@@ -55,7 +55,8 @@ do
 	WAVELENGTH=500  #def: 500
     SAMPLEGRID="2 2 1 1" #def 70 1 0.1 1 #should probably be the same as "NX NY DX DY" ?
 
-	#camera data
+	#panorama data
+    PANFN="test_panorama"
     fov_phi1="-45"
     fov_phi2="45"
     fov_theta1="45"
@@ -69,7 +70,8 @@ do
     mc_sensorposition="$(($xloc*1000)) $(($yloc*1000)) $((zloc*1000))"          #"x y z"; sensorpos in m
 	mc_sample_grid="$xpixel $ypixel"              #"nphi ntheta"; how many samples are taken in each direction; (phi1-phi1)/nphi = camera resolution in phi direction 
     mc_backward="0 0 $((xpixel-1)) $((ypixel-1))"             #"phi_start theta_start phi_end theta_end"; ? should match sample grid, e.g. 90 90 -> 0 0 89 89
-    cam_photons=1000
+    cam_photons=100
+    REP=100                                 #how many panoramas to calculate and mean(for parallelisation )
     PHOTONS=1000000
 
 
@@ -77,38 +79,38 @@ do
 
 	#script execution
 	#bash 03_gen_cloud.sh "$FNAME" "$ATM" "$NX" "$NY" "$DX" "$DY" "$CLDX" "$CLDY" "$CLDZ" "$ZLEV" "$NLAY" "$CR" "$LWC" "$CLOUDDIR"
-    bash 01_gen_radiance_jobs.sh "$UMUS" "$PHIS" "$SZA" "$PHI0" "$LIBRAD" "$WORKDIR" "$ATM" "$ALBEDO" "$WAVELENGTH" "$SAMPLEGRID" "$FNAME" "$ZLEVno0" "$PHOTONS" "$NUMU" "$SAVEDIR" "$CLOUDDIR"
-    #bash 02_gen_panorama.sh "$UMUS" "$PHIS" "$SZA" "$PHI0" "$cam_photons" "$LIBRAD" "$WORKDIR" "$ATM" "$ALBEDO" "$WAVELENGTH" "$FNAME" "$mc_panorama_view" \
-    #    "$mc_sensorposition" "$mc_sample_grid" "$mc_backward" "$PANDIR" "$CLOUDDIR"
+    #bash 01_gen_radiance_jobs.sh "$UMUS" "$PHIS" "$SZA" "$PHI0" "$LIBRAD" "$WORKDIR" "$ATM" "$ALBEDO" "$WAVELENGTH" "$SAMPLEGRID" "$FNAME" "$ZLEVno0" "$PHOTONS" "$NUMU" "$SAVEDIR" "$CLOUDDIR"
+    bash 02_gen_panorama.sh "$UMUS" "$PHIS" "$SZA" "$PHI0" "$cam_photons" "$LIBRAD" "$WORKDIR" "$ATM" "$ALBEDO" "$WAVELENGTH" "$FNAME" "$mc_panorama_view" \
+        "$mc_sensorposition" "$mc_sample_grid" "$mc_backward" "$PANDIR" "$CLOUDDIR" "$REP"
 
     
 	#output used parameters
 	bash op_parameters.sh "$UMUS" "$PHIS" "$SZA" "$PHI0" "$ZLEV" "$NLAY" "$SAMPLEGRID" "$LIBRAD" "$WORKDIR" "$ATM"
     
     #waiting for file completion/error checking
-    bash checkforfiles.sh "$UMUS" "$PHIS" "$LIBRAD" "$WORKDIR" "$SAVEDIR" "$PANDIR" "$i" "$j"
+    bash checkforfiles.sh "$UMUS" "$PHIS" "$LIBRAD" "$WORKDIR" "$SAVEDIR" "$PANDIR" "$i" "$j" "$REP"
     echo "All files generated"
 
     #generate optical properties and flx file
-    bash gen_opprop.sh "$UMUS" "$PHIS" "$FNAME" "$LIBRAD" "$SAVEDIR" "$CLOUDDIR" "$WORKDIR "$WORKDIR"" "$i"
+    #bash gen_opprop.sh "$UMUS" "$PHIS" "$FNAME" "$LIBRAD" "$SAVEDIR" "$CLOUDDIR" "$WORKDIR "$WORKDIR"" "$i"
     
     echo "Merging files ..."
 	#combine radiances into netcdf
 	radfn="$SAVEDIR/rad_test.nc"
-    python3 mergerads.py -Nmu $NUMU -1 1 -Nphi $NPHIS -radfn $radfn -loc $SAVEDIR
+    python3 mergerads.py -Nmu $NUMU -1 1 -Nphi $NPHIS -radfn $radfn -loc $SAVEDIR -panfn $PANFN -rep $REP -locpan $PANDIR 
     echo Done.
    
         
     #generate config
     outputfn="$TRACEDIR/output2d_test.nc"
     nsub=5
-    bash gen_config.sh "$radfn" "$SAVEDIR/test.optical_properties.nc" "$SAVEDIR/mc.flx.spc.nc" "$outputfn" "$DX" "$DY" "$ALBEDO" "$xpixel" "$ypixel" "$fov_phi1" "$fov_phi2" \
-        "$fov_theta1" "$fov_theta2" "$xloc" "$yloc" "$zloc" "$nsub" "$TRACEDIR"
+    #bash gen_config.sh "$radfn" "$SAVEDIR/test.optical_properties.nc" "$SAVEDIR/mc.flx.spc.nc" "$outputfn" "$DX" "$DY" "$ALBEDO" "$xpixel" "$ypixel" "$fov_phi1" "$fov_phi2" \
+    #    "$fov_theta1" "$fov_theta2" "$xloc" "$yloc" "$zloc" "$nsub" "$TRACEDIR"
     
-    cd $TRACEDIR
-    ./trace_optical_thickness
-    cd -
-    ((ncview $outputfn)&)
+    #cd $TRACEDIR
+    #./trace_optical_thickness
+    #cd -
+    #((ncview $outputfn)&)
     #((ncview $PANDIR/mc.rad.spc.nc)&)
 
 
