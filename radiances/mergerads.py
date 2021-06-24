@@ -31,9 +31,10 @@ def mergepan(loc_pan, rep, fname):
     if os.path.exists(loc_pan + "/" + fname):
         print("File " + fname + " already exists. Panoramas not merged")
         return 0
-
-    panorama = xr.open_mfdataset([loc_pan + "panorama_{}/mc.rad.spc.nc".format(i) for i in (np.arange(rep) + 1)], concat_dim="files")
-    panorama = panorama.mean(dim = "files")
+    
+    reps = np.arange(rep) + 1
+    panorama = xr.open_mfdataset([loc_pan + "/panorama_{}/mc.rad.spc.nc".format(i) for i in reps], concat_dim="files", combine="nested")
+    panorama = panorama.mean(dim="files")
     print("Mean panorama merged. Info: ")
     print(panorama)
     panorama.to_netcdf(loc_pan + "/" + fname + ".nc")

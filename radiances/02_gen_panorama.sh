@@ -21,7 +21,7 @@ CLOUDDIR=${17}
 REP=${18}
 
 
-for i in $( seq 0 $REP )
+for i in $( seq 1 $REP )
 do
     JOBDIR=$PANDIR/panorama_$i
     if [ ! -e $JOBDIR ]; then mkdir -p $JOBDIR; fi

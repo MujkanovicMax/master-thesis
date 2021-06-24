@@ -88,8 +88,8 @@ do
 	bash op_parameters.sh "$UMUS" "$PHIS" "$SZA" "$PHI0" "$ZLEV" "$NLAY" "$SAMPLEGRID" "$LIBRAD" "$WORKDIR" "$ATM"
     
     #waiting for file completion/error checking
-    bash checkforfiles.sh "$UMUS" "$PHIS" "$LIBRAD" "$WORKDIR" "$SAVEDIR" "$PANDIR" "$i" "$j" "$REP"
-    echo "All files generated"
+    #bash checkforrad.sh "$UMUS" "$PHIS" "$LIBRAD" "$WORKDIR" "$SAVEDIR" "$PANDIR" "$i" "$j" 
+    bash checkforpano.sh "$PANDIR" "$REP" 
 
     #generate optical properties and flx file
     #bash gen_opprop.sh "$UMUS" "$PHIS" "$FNAME" "$LIBRAD" "$SAVEDIR" "$CLOUDDIR" "$WORKDIR "$WORKDIR"" "$i"
