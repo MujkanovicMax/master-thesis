@@ -148,7 +148,7 @@ int main(int argc, char** argv) {
             //saving image data to NetCDF
             {
                 using namespace netCDF;    
-                NcFile file(outputfname + ".nc", NcFile::FileMode::replace);
+                NcFile file(outputfname, NcFile::FileMode::replace);
                 auto xdim = file.addDim("x", Nxpixel);
                 auto ydim = file.addDim("y", Nypixel);
                 file.addVar("image", NcType::nc_DOUBLE, {ydim, xdim}).putVar(image.data());
