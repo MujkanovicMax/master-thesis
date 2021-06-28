@@ -9,10 +9,11 @@ import os
 
 
 def mergerads(nmus,m1,m2, nphis, loc, fname="radiances.nc"):
-    if os.path.exists(fname):
+    if os.path.exists(loc + "/" + fname):
         print("File " + fname + " already exists. Radiances not merged")
         return 0
-
+    
+    print("Merging radiances...")
     mus,wmus = a.gen_mus(nmus,m1,m2)
     phis,wphis = a.gen_phis(nphis)
     Dlist = [xr.open_mfdataset([loc + "/job_mu" + str(int(nmus))  + "/job_{}_{}/mc.rad.spc.nc".format(i,j) for j in phis],concat_dim="phi") for i in mus]
@@ -21,10 +22,10 @@ def mergerads(nmus,m1,m2, nphis, loc, fname="radiances.nc"):
     D["wmu"] = wmus
     D["wmu"] = xr.DataArray(D.wmu.data, dims=("mu",))
     D["wphi"] = xr.DataArray(D.wphi.data, dims=("phi",))
-    print("Merging radiances into netcdf. Info: ") 
+    print("Radiances merged. Info: ") 
     print(D)
     print(fname)
-    D.to_netcdf(fname)
+    D.to_netcdf(loc + "/" + fname)
     D.close()
 
 def mergepan(loc_pan, rep, fname):
@@ -32,12 +33,13 @@ def mergepan(loc_pan, rep, fname):
         print("File " + fname + " already exists. Panoramas not merged")
         return 0
     
+    print("Merging panoramas..." )
     reps = np.arange(rep) + 1
     panorama = xr.open_mfdataset([loc_pan + "/panorama_{}/mc.rad.spc.nc".format(i) for i in reps], concat_dim="files", combine="nested")
     panorama = panorama.mean(dim="files")
     print("Mean panorama merged. Info: ")
     print(panorama)
-    panorama.to_netcdf(loc_pan + "/" + fname + ".nc")
+    panorama.to_netcdf(loc_pan + "/" + fname)
     panorama.close()
     return 1
 
