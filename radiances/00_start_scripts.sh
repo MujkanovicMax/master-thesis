@@ -109,13 +109,13 @@ do
     python3 mergerads.py -Nmu $NUMU -1 1 -Nphi $NPHIS -radfn $radfn -loc $SAVEDIR -panfn $PANFN -rep $REP -locpan $PANDIR 
         
     #generate config
-    bash gen_config.sh "$radfn" "$SAVEDIR/test.optical_properties.nc" "$SAVEDIR/mc.flx.spc.nc" "$outputfn" "$DX" "$DY" "$ALBEDO" "$xpixel" "$ypixel" "$fov_phi1" "$fov_phi2" \
+    bash gen_config.sh "$SAVEDIR/$radfn" "$SAVEDIR/test.optical_properties.nc" "$SAVEDIR/mc.flx.spc.nc" "$outputfn" "$DX" "$DY" "$ALBEDO" "$xpixel" "$ypixel" "$fov_phi1" "$fov_phi2" \
         "$fov_theta1" "$fov_theta2" "$xloc" "$yloc" "$zloc" "$nsub" "$TRACEDIR"
     
     cd $TRACEDIR
     ./trace_optical_thickness
+    ncview $outputfn
     cd -
-    ((ncview $outputfn)&)
     #((ncview $PANDIR/mc.rad.spc.nc)&)
 
 
