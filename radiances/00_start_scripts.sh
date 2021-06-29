@@ -1,13 +1,12 @@
 #!/bin/bash
 set -eu -o pipefail
 
-
 #directories
 SCRIPTDIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
-WORKDIR="$SCRIPTDIR/../"
+WORKDIR="$SCRIPTDIR/../"   
 LIBRAD=$WORKDIR/libRadtran
-SAVEDIR=$WORKDIR/radiances/rad_test
-PANDIR=$SAVEDIR/job_panorama
+SAVEDIR=$WORKDIR/radiances/rad_checkerboard_169
+PANDIR=$SAVEDIR/job_panorama_169
 TRACEDIR=$WORKDIR/trace_test
 CLOUDDIR=$WORKDIR/radiances/clouds
 ATM=$WORKDIR/radiances/stdatm/afglus_checkerboard.dat  
@@ -17,10 +16,10 @@ nm="4"                                          # 1 2 4 6 8 10 16 32
 np="4"
 
 #dirs and filenames
-PANFN="test_panorama.nc" 
+PANFN="panorama_169.nc" 
 cloudfn="wc3d_checkerboard_full.dat"
-radfn="rad_test.nc"
-outputfn="output2d_test.nc"
+radfn="rad_169.nc"
+outputfn="output2d_169.nc"
 
 #simulation data
 ALBEDO=0.2
@@ -33,12 +32,12 @@ PHI0=270                        #where the sun is shining from (0 north, 90 west
 nsub=5                          #number of subdivisions for phase function calculation
 
 #camera data
-fov_phi1="-45"                  #
-fov_phi2="45"                   #   angles for camera (rotation and fov)
+fov_phi1="-80"                  #
+fov_phi2="80"                   #   angles for camera (rotation and fov)
 fov_theta1="45"                 #
 fov_theta2="135"                #
-xpixel=120                      #   number of pixel in x and y
-ypixel=120                      #
+xpixel=160                      #   number of pixel in x and y
+ypixel=90                      #
 
 #positions
 xloc=1                          #camera position in km
