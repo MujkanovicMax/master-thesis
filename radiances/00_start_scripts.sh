@@ -1,9 +1,9 @@
 #!/bin/bash
 set -eu -o pipefail
 
-
 #directories
-WORKDIR=$HOME/testgit/ma-project   ###dir of repo
+SCRIPTDIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
+WORKDIR="$SCRIPTDIR/../"   
 LIBRAD=$WORKDIR/libRadtran
 SAVEDIR=$WORKDIR/radiances/rad_test
 PANDIR=$SAVEDIR/job_panorama
