@@ -1,3 +1,4 @@
+#!/bin/bash
 #$linesza=$( grep "sza " uvspec.inp )
 #$sza=${linesza:4:2}
 

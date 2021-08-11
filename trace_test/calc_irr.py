@@ -21,29 +21,32 @@ def irr_to_netcdf(inputname, outputname):
     E.to_netcdf(outputname)
     return E
 
-def irr_to_netcdf_alt(inputname, outputname):
-    irr_myst = xr.open_dataset("../radiances/mc.flx.spc.nc")
+def irr_to_netcdf_alt(inputname, comparename, outputname):
+    irr_myst = xr.open_dataset(inputname)
     #irr_myst = xr.open_dataset("irr_cloud_above_cam.nc")
-    rad = xr.open_dataset(inputname)
-    Eup, Edown = calc_irr(rad)
+    rad = xr.open_dataset(comparename)
+    #Eup, Edown = calc_irr(rad)
     E = rad.drop_dims("mu").drop_dims("phi")
     E = E.expand_dims("mu").expand_dims("phi").expand_dims("wmu").expand_dims("wphi")
     Edown_myst = irr_myst["Edown"]
     Eup_myst = irr_myst["Eup"]
-    E["mu"] = [-1,1]
+    E["mu"] = [-0.6005,0.6005]
     E["phi"] = [0]
     E["wphi"] = [2*np.pi]
     E["wmu"] = [1,1]
     E["radiance"] = (["x","y","z","wvl","mu","phi"], np.zeros((E.x.shape[0],E.y.shape[0],E.z.shape[0],E.wvl.shape[0],E.mu.shape[0],E.phi.shape[0])))
-    E["radiance"][:,:,:,:,0,0] = Edown_myst/np.pi
-    E["radiance"][:,:,:,:,1,0] = Eup_myst/np.pi
+    E["radiance"][:,:,:,:,0,0] = Edown_myst/(4*np.pi*0.6005)
+    E["radiance"][:,:,:,:,1,0] = Eup_myst/(4*np.pi*0.6005)
     E.to_netcdf(outputname)
     return E
 
 
-fname = "rad_mu_32.nc"
+#fname = "/home/m/Mujkanovic.Max/ma/radiances/rad_checkerboard_169/mc.flx.spc.nc"
+#fname = "/project/meteo-scratch/Mujkanovic.Max/rad_philipp_new/flx_philipp_new.nc"
+fname = "flx_checkerboard_32x32.nc"
+compare = "rad_checkerboard_32x32.nc"
 
-irr_to_netcdf_alt(fname, "irr_from_10s_twostr_only.nc")
+irr_to_netcdf_alt(fname, compare, "irr_checkerboard_32x32.nc")
 
 #rad = xr.open_dataset(fname)
 #rad4 = xr.open_dataset("radiances_h.nc")

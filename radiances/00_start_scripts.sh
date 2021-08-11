@@ -5,21 +5,21 @@ set -eu -o pipefail
 SCRIPTDIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 WORKDIR="$SCRIPTDIR/../"   
 LIBRAD=$WORKDIR/libRadtran
-SAVEDIR=$WORKDIR/radiances/rad_checkerboard_169
-PANDIR=$SAVEDIR/job_panorama_169
+SAVEDIR=$WORKDIR/radiances/rad_checkerboard_32x32
+PANDIR=$SAVEDIR/job_panorama
 TRACEDIR=$WORKDIR/trace_test
 CLOUDDIR=$WORKDIR/radiances/clouds
 ATM=$WORKDIR/radiances/stdatm/afglus_checkerboard.dat  
 
 #number of angles for radiancesi (can be lists)
-nm="4"                                          # 1 2 4 6 8 10 16 32
-np="4"
+nm="32"                                          # 1 2 4 6 8 10 16 32
+np="32"
 
 #dirs and filenames
-PANFN="panorama_169.nc" 
+PANFN="panorama_checkerboard.nc" 
 cloudfn="wc3d_checkerboard_full.dat"
-radfn="rad_169.nc"
-outputfn="output2d_169.nc"
+radfn="rad_checkerboard_32x32.nc"
+outputfn="output2d_checkerboard_32x32.nc"
 
 #simulation data
 ALBEDO=0.2
@@ -32,12 +32,12 @@ PHI0=270                        #where the sun is shining from (0 north, 90 west
 nsub=5                          #number of subdivisions for phase function calculation
 
 #camera data
-fov_phi1="-80"                  #
-fov_phi2="80"                   #   angles for camera (rotation and fov)
+fov_phi1="-45"                  #
+fov_phi2="45"                   #   angles for camera (rotation and fov)
 fov_theta1="45"                 #
 fov_theta2="135"                #
-xpixel=160                      #   number of pixel in x and y
-ypixel=90                      #
+xpixel=120                      #   number of pixel in x and y
+ypixel=120                      #
 
 #positions
 xloc=1                          #camera position in km
@@ -91,31 +91,31 @@ do
 
 	#script execution
 	#bash 03_gen_cloud.sh "$cloudfn" "$ATM" "$NX" "$NY" "$DX" "$DY" "$CLDX" "$CLDY" "$CLDZ" "$ZLEV" "$NLAY" "$CR" "$LWC" "$CLOUDDIR"
-    bash 01_gen_radiance_jobs.sh "$UMUS" "$PHIS" "$SZA" "$PHI0" "$LIBRAD" "$WORKDIR" "$ATM" "$ALBEDO" "$WAVELENGTH" "$SAMPLEGRID" "$cloudfn" "$ZLEVno0" "$PHOTONS" "$NUMU" "$SAVEDIR" "$CLOUDDIR"
-    bash 02_gen_panorama.sh "$UMUS" "$PHIS" "$SZA" "$PHI0" "$cam_photons" "$LIBRAD" "$WORKDIR" "$ATM" "$ALBEDO" "$WAVELENGTH" "$cloudfn" "$mc_panorama_view" \
-        "$mc_sensorposition" "$mc_sample_grid" "$mc_backward" "$PANDIR" "$CLOUDDIR" "$REP"
+    #bash 01_gen_radiance_jobs.sh "$UMUS" "$PHIS" "$SZA" "$PHI0" "$LIBRAD" "$WORKDIR" "$ATM" "$ALBEDO" "$WAVELENGTH" "$SAMPLEGRID" "$cloudfn" "$ZLEVno0" "$PHOTONS" "$NUMU" "$SAVEDIR" "$CLOUDDIR"
+    #bash 02_gen_panorama.sh "$UMUS" "$PHIS" "$SZA" "$PHI0" "$cam_photons" "$LIBRAD" "$WORKDIR" "$ATM" "$ALBEDO" "$WAVELENGTH" "$cloudfn" "$mc_panorama_view" \
+    #    "$mc_sensorposition" "$mc_sample_grid" "$mc_backward" "$PANDIR" "$CLOUDDIR" "$REP"
 
 	#output used parameters
-	bash op_parameters.sh "$UMUS" "$PHIS" "$SZA" "$PHI0" "$ZLEV" "$NLAY" "$SAMPLEGRID" "$LIBRAD" "$WORKDIR" "$ATM"
+	#bash op_parameters.sh "$UMUS" "$PHIS" "$SZA" "$PHI0" "$ZLEV" "$NLAY" "$SAMPLEGRID" "$LIBRAD" "$WORKDIR" "$ATM"
     
     #waiting for file completion/error checking
-    bash checkforrad.sh "$UMUS" "$PHIS" "$LIBRAD" "$WORKDIR" "$SAVEDIR" "$PANDIR" "$i" "$j" 
-    bash checkforpano.sh "$PANDIR" "$REP" 
+    #bash checkforrad.sh "$UMUS" "$PHIS" "$LIBRAD" "$WORKDIR" "$SAVEDIR" "$PANDIR" "$i" "$j" 
+    #bash checkforpano.sh "$PANDIR" "$REP" 
 
     #generate optical properties and flx file
     bash gen_opprop.sh "$UMUS" "$PHIS" "$cloudfn" "$LIBRAD" "$SAVEDIR" "$CLOUDDIR" "$WORKDIR "$WORKDIR"" "$i"
     
 	#combine radiances into netcdf
-    python3 mergerads.py -Nmu $NUMU -1 1 -Nphi $NPHIS -radfn $radfn -loc $SAVEDIR -panfn $PANFN -rep $REP -locpan $PANDIR 
+    #python3 mergerads.py -Nmu $NUMU -1 1 -Nphi $NPHIS -radfn $radfn -loc $SAVEDIR -panfn $PANFN -rep $REP -locpan $PANDIR 
         
     #generate config
-    bash gen_config.sh "$SAVEDIR/$radfn" "$SAVEDIR/test.optical_properties.nc" "$SAVEDIR/mc.flx.spc.nc" "$outputfn" "$DX" "$DY" "$ALBEDO" "$xpixel" "$ypixel" "$fov_phi1" "$fov_phi2" \
-        "$fov_theta1" "$fov_theta2" "$xloc" "$yloc" "$zloc" "$nsub" "$TRACEDIR"
+    #bash gen_config.sh "$SAVEDIR/$radfn" "$SAVEDIR/test.optical_properties.nc" "$SAVEDIR/mc.flx.spc.nc" "$outputfn" "$DX" "$DY" "$ALBEDO" "$xpixel" "$ypixel" "$fov_phi1" "$fov_phi2" \
+    #    "$fov_theta1" "$fov_theta2" "$xloc" "$yloc" "$zloc" "$nsub" "$TRACEDIR"
     
-    cd $TRACEDIR
-    ./trace_optical_thickness
-    ncview $outputfn
-    cd -
+   # cd $TRACEDIR
+   # ./trace_optical_thickness
+   # ncview $outputfn
+   # cd -
     #((ncview $PANDIR/mc.rad.spc.nc)&)
 
 

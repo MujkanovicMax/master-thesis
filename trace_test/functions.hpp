@@ -12,6 +12,7 @@
 #include <fstream>
 #include <algorithm>
 
+
 template <size_t N>
 constexpr std::array<size_t,N> indexDecompose(size_t index, const std::array<size_t,N>& shape) {
     std::array<size_t,N> out = {};
@@ -24,15 +25,15 @@ constexpr std::array<size_t,N> indexDecompose(size_t index, const std::array<siz
 
 template <size_t N>
 constexpr size_t indexRecompose(std::array<size_t,N> index, const std::array<size_t,N>& shape) {
-    
+
     size_t out = 0;
 
     for(size_t i = 0; i<N; ++i) {
         if(index[i] >= shape[i]){
             throw std::out_of_range(std::string("given index is out of bounds: ") +
-                        "Indexvalue " + std::to_string(index[i]) + 
-                        " exceeds shape " + std::to_string(shape[i]) +
-                        " in dimension " + std::to_string(i)); 
+                    "Indexvalue " + std::to_string(index[i]) + 
+                    " exceeds shape " + std::to_string(shape[i]) +
+                    " in dimension " + std::to_string(i)); 
         }
         out *= shape[i];
         out += index[i];
@@ -48,7 +49,7 @@ Eigen::Vector3d angleToVec(double mu, double phi) {
     double y = a*cos(p);
     double x = a*sin(p);
     double z = mu;
-    
+
     if(std::isnan(a) ==1){ std::cout << mu << "  " << "\n";}
 
     return Eigen::Vector3d{x,y,z};
@@ -81,7 +82,7 @@ std::vector<double> calcSubstreamDirs(const std::vector<double>& mus, const std:
             double delphi = wphis[j]/M_PI*180/nsub;
             double wphi_s = phis[j] - wphis[j]/M_PI*180/2; //def wphi_s = phis[j] - wphis[j]/2 wahrscheinlich falsch weil phi in ° und wphi in rad
             double wphi_e = phis[j] + wphis[j]/M_PI*180/2; //def wphi_e = phis[j] + wphis[j]/2
-            
+
             //if(wphi_s < 0){ wphi_s = 0;}
             //if(wphi_e > 360){ wphi_e = 360;}
             //std::cout << wphi_s << "    " << phis[j] << "   " << wphis[j] << "\n";
@@ -129,7 +130,7 @@ double phase_HG(double g, double mu) {
 }
 
 double integrated_HG(double g, double mu_s, double mu_e){
-    
+
     if(g==0){
         return 1/(4*M_PI);//*(mu_e-mu_s);
     }
@@ -140,7 +141,7 @@ double integrated_HG(double g, double mu_s, double mu_e){
 
 double calc_IHG( double wmu_s, double wmu_e, double phi, double wphi, const Ray& ray, double g){
 
-   return 0;
+    return 0;
 
 }
 
@@ -151,20 +152,20 @@ double calc_pHG(double wmu_s, double wmu_e, double phi, double wphi, const Ray& 
     //double weightsum = 0;
     //double wphi_s = phi - wphi/2;
     //double wphi_e = phi + wphi/2;
-    
+
     ///test///
-   // Eigen::Vector3d dir_s, dir_e;
-   // for(size_t x = 0; x<3; ++x) {
-   //         size_t l1 = indexRecompose(std::array<size_t,5>{mu_i,phi_j,0,0,x}, std::array<size_t,5>{nmu,nphi,n,n,3});
-   //         size_t l2 = indexRecompose(std::array<size_t,5>{mu_i,phi_j,n-1,n-1,x}, std::array<size_t,5>{nmu,nphi,n,n,3});
-   //         dir_s[x] = substreams[l1];
-   //         dir_e[x] = substreams[l2];
-   //     }
-   // double mu_s = (-ray.d).dot(dir_s);
-   // double mu_e = (-ray.d).dot(dir_e);
-   // 
-   // double pf_alt = integrated_HG(g,mu_s,mu_e); 
-   // //return pf;
+    // Eigen::Vector3d dir_s, dir_e;
+    // for(size_t x = 0; x<3; ++x) {
+    //         size_t l1 = indexRecompose(std::array<size_t,5>{mu_i,phi_j,0,0,x}, std::array<size_t,5>{nmu,nphi,n,n,3});
+    //         size_t l2 = indexRecompose(std::array<size_t,5>{mu_i,phi_j,n-1,n-1,x}, std::array<size_t,5>{nmu,nphi,n,n,3});
+    //         dir_s[x] = substreams[l1];
+    //         dir_e[x] = substreams[l2];
+    //     }
+    // double mu_s = (-ray.d).dot(dir_s);
+    // double mu_e = (-ray.d).dot(dir_e);
+    // 
+    // double pf_alt = integrated_HG(g,mu_s,mu_e); 
+    // //return pf;
     //////////
     //double sa_min=10;
     double sa;
@@ -313,6 +314,7 @@ std::array<double,3> calc_Ldiff(const Ray& ray, double dx, double dy, const std:
         double dtau, double g1, size_t nx, size_t ny, size_t nlyr, size_t nmu, size_t nphi, const std::vector<double>& mu, const std::vector<double>& phi, 
         const std::vector<double>& wmu, const std::vector<double>& wphi, const std::vector<double>& rad, 
         const std::vector<double>& streams, size_t nsub, const std::vector<double>& substreams) {
+
     double Lup = 0;
     double Ldown = 0;
     auto [x,y,z] = indexDecompose<3>(idx, {nx,ny,nlyr});
@@ -341,73 +343,57 @@ std::array<double,3> calc_Ldiff(const Ray& ray, double dx, double dy, const std:
         alpha =  1-pu/(pl+pu);
         beta = 1 - alpha;
     }
-    //double alpha = 1;
-    //if(dtau > tau_thres){
-    //    double d = (tau_thres/dtau)*(tfar - tnear);
-    //    double l1 = (x+0.5)*dx;
-    //    double l2 = (y+0.5)*dy;
-    //    double l3 = zlev[z];
-    //    double u3 = zlev[z+1];
-    //    Eigen::Vector3d e1;
-    //    e1[0] = 1;
-    //    e1[1] = 0;
-    //    e1[2] = 0;
-    //    double rayangle = (ray.d).dot(e1);
-    //    double p1 = l1 - d*std::sin(rayangle);
-    //    double p2 = l2;
-    //    double p3 = u3 - d*std::cos(rayangle);
 
-    //    double pu = std::sqrt((p1-l1)*(p1-l1) + (p2-l2)*(p2-l2) + (p3-u3)*(p3-u3));
-    //    double pl = std::sqrt((p1-l1)*(p1-l1) + (p2-l2)*(p2-l2) + (p3-l3)*(p3-l3));
-    //    alpha =  1-pu/(pl+pu); //1/(1+(1/std::exp(0.5*dtau))); //std::min(dtau, dtau_max)/dtau_max; 
-    //}
-    
-    //double beta = 1 - alpha;
-    //std::cout << "dtau = " <<dtau << "   alpha = " << alpha << "   beta = " << beta << "\n";
-    
     if(ray.d[2] > 0){
 
         alpha = 1 - alpha;
         beta = 1 - alpha;
 
     }
-    //tmp stuff
-    //double sum_pf = 0;
 
-    //
     for(size_t i = 0; i < nmu; ++i) {
         wmu_e = wmu_s + wmu[i];
         for(size_t j = 0; j < nphi; ++j) {
-            //Eigen::Vector3d lvec = angleToVec(mu[i],phi[j]);
             Eigen::Vector3d lvec;
-            //for(size_t x = 0; x<3; ++x) {
-            //    size_t li = indexRecompose(std::array<size_t,3>{i,j,x}, std::array<size_t,3>{nmu,nphi,3});
-            //    lvec[x] = streams[li];
-            //}
-
-            //double muscatter = (-ray.d).dot(lvec); 
-            //double muscatter = -ray.d[0] * lvec[0] - ray.d[1] * lvec[1] - ray.d[2] * lvec[2];
             double weight = wmu[i] * wphi[j];
-            //std::cout << " x=" <<  x << " y=" << y << " z= " << z << " imu= " << i << " iphi= " << j << "\n";
             size_t index_t = indexRecompose(std::array<size_t,5>{x,y,z+1,i,j},std::array<size_t,5>{nx,ny,nlyr+1,nmu,nphi});
             size_t index_b = indexRecompose(std::array<size_t,5>{x,y,z,i,j},std::array<size_t,5>{nx,ny,nlyr+1,nmu,nphi});
-            
-            if(g1==0){
-                //pf = weight * phase_HG(g1, muscatter); //g1!!!!!!!!!
-                pf = weight * 1./(4*M_PI);
-                //sum_pf += pf;
-                //std::cout << "muscatter = " << muscatter << "\n";
-            }
-            else{
-                for(size_t x = 0; x<3; ++x) {
-                    size_t li = indexRecompose(std::array<size_t,3>{i,j,x}, std::array<size_t,3>{nmu,nphi,3});
-                    lvec[x] = streams[li];
+
+            if(nsub == 0){
+
+                if(g1==0){  pf = weight * 1./(4*M_PI); }
+
+                else{
+
+                    for(size_t x = 0; x<3; ++x) {
+                        size_t li = indexRecompose(std::array<size_t,3>{i,j,x}, std::array<size_t,3>{nmu,nphi,3});
+                        lvec[x] = streams[li];
+                    }
+
+                    double muscatter = (-ray.d).dot(lvec);
+                    pf = weight * phase_HG(g1, muscatter);
+
                 }
-                double muscatter = (-ray.d).dot(lvec);
-                pf = weight * calc_pHG(wmu_s, wmu_e, phi[j], wphi[j], ray, g1, nsub, substreams,i,j,nmu,nphi);
+
             }
-            //std::cout << "rad oben: " << rad[index_t] << "   rad unten: " << rad[index_b] << "  pf =  " << pf << "   alpha= " << alpha << "     beta = " << beta << "\n"; 
-            
+
+            else{
+
+                if(g1 == 0){ pf = weight * 1./(4*M_PI); }
+
+                else{
+
+                    for(size_t x = 0; x<3; ++x) {
+                        size_t li = indexRecompose(std::array<size_t,3>{i,j,x}, std::array<size_t,3>{nmu,nphi,3});
+                        lvec[x] = streams[li];
+                    }
+                    double muscatter = (-ray.d).dot(lvec);
+                    pf = weight * calc_pHG(wmu_s, wmu_e, phi[j], wphi[j], ray, g1, nsub, substreams,i,j,nmu,nphi);
+
+                }
+
+            }
+
             if(mu[i] < 0){
                 Ldown += alpha * rad[index_t] * pf  + beta * rad[index_b] * pf;
             }
@@ -419,7 +405,6 @@ std::array<double,3> calc_Ldiff(const Ray& ray, double dx, double dy, const std:
         }
         wmu_s = wmu_e;
     }
-    //std::cout << "Lup = " << Lup << "   Ldown = " << Ldown << " x y z " << x << y << z << "\n"; 
     return std::array<double,3>{Lup + Ldown,Lup,Ldown}; 
 }
 void calc_image(auto grid, auto cam, double Nxpixel, double Nypixel, double dx, double dy, const std::vector<double>& zlev, const std::vector<double>& kext, 
@@ -436,15 +421,15 @@ void calc_image(auto grid, auto cam, double Nxpixel, double Nypixel, double dx, 
     size_t a,b,c;
     //Main loop
     std::cout << "Starting Raytracer..." << "\n";
-    
-    for(size_t i = 0; i < Nypixel; ++i) {
-        double ypx = (i + 0.5) / Nypixel;
-        
-        for(size_t j = 0; j < Nxpixel; ++j) {
-            
-            double xpx = (j + 0.5) / Nxpixel;
+
+    for (size_t i = 0; i < Nxpixel; ++i){
+        double xpx = (i + 0.5) / Nxpixel;
+
+        for(size_t j = 0; j < Nypixel; ++j) {
+
+            double ypx = (j + 0.5) / Nypixel;
             auto ray = cam.compute_ray(Eigen::Vector2d{xpx, ypx});
-            
+
             //sum zeroing
             double optical_thickness = 0;
             double radiance = 0;
@@ -463,7 +448,7 @@ void calc_image(auto grid, auto cam, double Nxpixel, double Nypixel, double dx, 
                     size_t optprop_index = indexRecompose(std::array<size_t,3>{z,x,y},std::array<size_t,3>{nlyr,nx,ny});
                     size_t rad_index = indexRecompose(std::array<size_t,3>{x,y,z+1},std::array<size_t,3>{nx,ny,nlyr+1});
                     groundidx = indexRecompose(std::array<size_t,3>{x,y,z},std::array<size_t,3>{nx,ny,nlyr+1});
-                    
+
                     //main pixel calculation ( radiance summation, etc.)
                     double L = Edir[rad_index]/fabs(muEdir);
                     double transmission = exp(-optical_thickness);
@@ -472,8 +457,8 @@ void calc_image(auto grid, auto cam, double Nxpixel, double Nypixel, double dx, 
                     double phase_function = phase_HG(g1[optprop_index], (-ray.d).dot(sza_dir.normalized()));
                     auto [Lup_Plus_Ldown, Lup, Ldown] = calc_Ldiff(ray, dx, dy, zlev, pvol->tfar, pvol->tnear, pvol->idx, kext[optprop_index], 
                             dtau, g1[optprop_index], nx, ny, nlyr, nmu, nphi, mus, phis, wmus, wphis, radiances, streams, nsub, substreams);
-                    double scatter_prob = 1 - exp(-dtau*w0[optprop_index]);
-                    
+                    double scatter_prob = - expm1(-dtau*w0[optprop_index]);
+
                     // summation for pixelvalues        
                     Lup *= transmission * scatter_prob;
                     Ldown *= transmission * scatter_prob;
@@ -488,105 +473,133 @@ void calc_image(auto grid, auto cam, double Nxpixel, double Nypixel, double dx, 
 
             }
             //bottom-most index ground reflection calculation
-            auto [gR, gRdir, gRdiff] = groundReflection_lambert(ray,groundidx,albedo, nx, ny, nlyr, nmu, nphi, mus, wmus, wphis, Edir, radiances); 
-            double ground_E = gR *  exp(-optical_thickness);            
-            
+            double gR, gRdir, gRdiff = 0;
+            std::array<double,3> ground{gR, gRdir, gRdiff};
+            auto [x,y,z] = indexDecompose(groundidx, std::array<size_t,3>{nx,ny,nlyr+1}); 
+            if( z == 0){
+                ground = groundReflection_lambert(ray,groundidx,albedo, nx, ny, nlyr, nmu, nphi, mus, wmus, wphis, Edir, radiances); 
+            }
+            double ground_E = ground[0] *  exp(-optical_thickness);            
+
             //writing pixelvalues to image
-            image[j + i * Nxpixel]      = radiance + ground_E;
-            opthick_image[j+i*Nxpixel]  = optical_thickness;
-            Ldiff_i[j+i*Nxpixel]        = Ldiffs;
-            Lup_i[j+i*Nxpixel]          = Lups;
-            Ldown_i[j+i*Nxpixel]        = Ldowns;
-            Ldir_i[j+i*Nxpixel]         = Ldirs;
-            groundbox[j+i*Nxpixel]      = indexDecompose<3>(groundidx,std::array<size_t,3>{nx,ny,nlyr})[0];
-            gRdir_i[j+i*Nxpixel]        = gRdir * exp(-optical_thickness);
-            gRdiff_i[j+i*Nxpixel]       = gRdiff * exp(-optical_thickness);
-           
+            image[j + i * Nypixel]      = radiance + ground_E;
+            opthick_image[j+i*Nypixel]  = optical_thickness;
+            Ldiff_i[j+i*Nypixel]        = Ldiffs;
+            Lup_i[j+i*Nypixel]          = Lups;
+            Ldown_i[j+i*Nypixel]        = Ldowns;
+            Ldir_i[j+i*Nypixel]         = Ldirs;
+            groundbox[j+i*Nypixel]      = indexDecompose<3>(groundidx,std::array<size_t,3>{nx,ny,nlyr})[0];
+            gRdir_i[j+i*Nypixel]        = ground[1] * exp(-optical_thickness);
+            gRdiff_i[j+i*Nypixel]       = ground[2] * exp(-optical_thickness);
+
+
             std::cout << "Pixel " << i << " ," << j << " done." << "\n";
         }
     }
- 
-std::cout << "Stopping Raytracer...\n";
+
+    std::cout << "Stopping Raytracer...\n";
 }
 
 
 void read_radiances( std::string fpath, std::vector<double>& radiances, std::vector<double>& mus, std::vector<double>& phis, std::vector<double>& wmus, std::vector<double>& wphis, size_t& nmu, size_t& nphi )
-    {
+{
 
-        using namespace netCDF;
+    //try{
 
-        NcFile file(fpath, NcFile::FileMode::read);
-        
-        size_t nx = file.getDim("x").getSize();
-        size_t ny = file.getDim("y").getSize();
-        size_t nz = file.getDim("z").getSize();
-        nphi = file.getDim("phi").getSize();
-        nmu = file.getDim("mu").getSize();
-        size_t nwvl  = file.getDim("wvl").getSize();
-        //std::cout << nx*ny*nz*nmu*nphi*nwvl << "\n";
-        radiances.resize(nx*ny*nz*nmu*nphi*nwvl);
-        mus.resize(nmu);
-        phis.resize(nphi);
-        wmus.resize(nmu);
-        wphis.resize(nphi);
+    using namespace netCDF;
 
-        file.getVar("radiance").getVar(radiances.data());
-        file.getVar("mu").getVar(mus.data());
-        file.getVar("phi").getVar(phis.data());
-        file.getVar("wmu").getVar(wmus.data());
-        file.getVar("wphi").getVar(wphis.data());
+    NcFile file(fpath, NcFile::FileMode::read);
 
-    }
+    size_t nx = file.getDim("x").getSize();
+    size_t ny = file.getDim("y").getSize();
+    size_t nz = file.getDim("z").getSize();
+    nphi = file.getDim("phi").getSize();
+    nmu = file.getDim("mu").getSize();
+    size_t nwvl  = file.getDim("wvl").getSize();
+    radiances.resize(nx*ny*nz*nmu*nphi*nwvl);
+    mus.resize(nmu);
+    phis.resize(nphi);
+    wmus.resize(nmu);
+    wphis.resize(nphi);
+
+    file.getVar("radiance").getVar(radiances.data());
+    file.getVar("mu").getVar(mus.data());
+    file.getVar("phi").getVar(phis.data());
+    file.getVar("wmu").getVar(wmus.data());
+    file.getVar("wphi").getVar(wphis.data());
+
+    //}
+
+    //catch(const netCDF::exceptions::NcBadId& e){
+
+    //    using namespace netCDF;
+
+    //    NcFile file(fpath, NcFile::FileMode::read);
+    //    
+    //    size_t nx = file.getDim("x").getSize();
+    //    size_t ny = file.getDim("y").getSize();
+    //    size_t nz = file.getDim("z").getSize();
+    //    size_t nwvl  = file.getDim("wvl").getSize();
+    //    radiances.resize(nx*ny*nz*nwvl);
+
+    //    file.getVar("radiance").getVar(radiances.data());
+    //
+    //}
+
+
+
+
+}
 
 void read_opprop( std::string fpath, std::vector<double>& kext, std::vector<double>& zlev, std::vector<double>& w0, std::vector<double>& g1, size_t& nlev, size_t& nlyr, size_t& nx, size_t& ny )
-    {
+{
 
-        using namespace netCDF;
+    using namespace netCDF;
 
-        NcFile file(fpath, NcFile::FileMode::read);
-        nlev = file.getDim("nlev").getSize();
-        nlyr = file.getDim("caoth3d_0_wc_nlyr").getSize();
-        nx = file.getDim("caoth3d_0_wc_Nx").getSize();
-        ny = file.getDim("caoth3d_0_wc_Ny").getSize();
+    NcFile file(fpath, NcFile::FileMode::read);
+    nlev = file.getDim("nlev").getSize();
+    nlyr = file.getDim("caoth3d_0_wc_nlyr").getSize();
+    nx = file.getDim("caoth3d_0_wc_Nx").getSize();
+    ny = file.getDim("caoth3d_0_wc_Ny").getSize();
 
-        zlev.resize(nlev);
-        kext.resize(nlyr*nx*ny);
-        w0.resize(nlyr*nx*ny);
-        g1.resize(nlyr*nx*ny);
-        file.getVar("caoth3d_0_wc_ext").getVar(kext.data());
-        file.getVar("output_mc.z").getVar(zlev.data());
-        file.getVar("caoth3d_0_wc_ssa").getVar(w0.data());
-        file.getVar("caoth3d_0_wc_g1").getVar(g1.data());
+    zlev.resize(nlev);
+    kext.resize(nlyr*nx*ny);
+    w0.resize(nlyr*nx*ny);
+    g1.resize(nlyr*nx*ny);
+    file.getVar("caoth3d_0_wc_ext").getVar(kext.data());
+    file.getVar("output_mc.z").getVar(zlev.data());
+    file.getVar("caoth3d_0_wc_ssa").getVar(w0.data());
+    file.getVar("caoth3d_0_wc_g1").getVar(g1.data());
 
-    }
+}
 void read_flx( std::string fpath, std::vector<double>& Edir, std::vector<double>& Edown, Eigen::Vector3d& sza_dir, double& muEdir )
-    {
-   
-        using namespace netCDF;
- 
-        NcFile file(fpath, NcFile::FileMode::read);
-        size_t Nx = file.getDim("x").getSize();
-        size_t Ny = file.getDim("y").getSize();
-        size_t Nz = file.getDim("z").getSize();
-        size_t Nwvl = file.getDim("wvl").getSize();
+{
 
-        file.getAtt("mu0").getValues(&muEdir);
-        sza_dir = angleToVec(muEdir,270);
- //        std::cout << "sza_dir = " << sza_dir.transpose() << "\n";
-        Edir.resize(Nx*Ny*Nz*Nwvl);
-        Edown.resize(Nx*Ny*Nz*Nwvl);
-        file.getVar("Edir").getVar(Edir.data());
-        file.getVar("Edown").getVar(Edown.data());
- 
-    }   
+    using namespace netCDF;
+
+    NcFile file(fpath, NcFile::FileMode::read);
+    size_t Nx = file.getDim("x").getSize();
+    size_t Ny = file.getDim("y").getSize();
+    size_t Nz = file.getDim("z").getSize();
+    size_t Nwvl = file.getDim("wvl").getSize();
+
+    file.getAtt("mu0").getValues(&muEdir);
+    sza_dir = angleToVec(muEdir,270);
+    //        std::cout << "sza_dir = " << sza_dir.transpose() << "\n";
+    Edir.resize(Nx*Ny*Nz*Nwvl);
+    Edown.resize(Nx*Ny*Nz*Nwvl);
+    file.getVar("Edir").getVar(Edir.data());
+    file.getVar("Edown").getVar(Edown.data());
+
+}   
 
 void print_parameters(std::string radpath, std::string flxpath, std::string oppath, std::string fname, double dx, double dy, double albedo, double xloc,
-                        double yloc, double zloc, double Nxpixel, double Nypixel, double fov, double fov_phi1, double fov_phi2, double fov_theta1, 
-                        double fov_theta2, double rays, double nsub)
+        double yloc, double zloc, double Nxpixel, double Nypixel, double fov, double fov_phi1, double fov_phi2, double fov_theta1, 
+        double fov_theta2, double rays, double nsub)
 {
     std::ofstream file;
     file.open("parameter_logs/" + fname + "_input_parameters.txt");
-    
+
     file << "radpath: " << radpath  << "\n";
     file << "flxpath: " << flxpath  << "\n";
     file << "oppath: " << oppath  << "\n";

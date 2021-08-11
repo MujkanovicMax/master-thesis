@@ -4,16 +4,29 @@ import argparse
 import numpy as np
 
 def gen_phis(Nphi):
-    phis = np.linspace(0,360,Nphi+1)[:-1]
-    phis = np.round(phis, decimals=2)
-    wgts = 2*np.pi*np.ones_like(phis) / Nphi
-    return phis, wgts
+    
+    if Nphi == 1:
+        phis = np.array([0.])
+        wgts = np.array([2*np.pi])
+        return phis, wgts
+    
+    else:
+        phis = np.linspace(0,360,Nphi+1)[:-1]
+        phis = np.round(phis, decimals=2)
+        wgts = 2*np.pi*np.ones_like(phis) / Nphi
+        return phis, wgts
 
 def gen_mus(Nmus,a,b):
-    mus,wgts = np.polynomial.legendre.leggauss(int(Nmus))
-    mus = (b - a)/2. * mus + (b + a)/2.
-    wgts = wgts * (b - a)/2.
-    return mus,wgts
+    
+    if Nmus == 2:
+        mus = np.array([-1.,1.])
+        wgts = np.array([1.,1.])
+        return mus,wgts
+    else:
+        mus,wgts = np.polynomial.legendre.leggauss(int(Nmus))
+        mus = (b - a)/2. * mus + (b + a)/2.
+        wgts = wgts * (b - a)/2.
+        return mus,wgts
 
 
 def _main():

@@ -40,24 +40,38 @@ def half_levels(ds, radkey, hkey, op, flx, div, outpath=None):
     ind = np.where(lwc > 2.e-30)
     cz_start = ind[0][0]
     cz_end = ind[0][-1] + 1
-
-
-    rads = xr.concat([ds[radkey][:,:,cz_start:cz_end:div,:,:,:],ds[radkey][:,:,cz_end:,:,:,:]],dim=hkey)
+    
+    if cz_start == 0:
+        rads = xr.concat([ds[radkey][:,:,cz_start:cz_end:div,:,:,:],ds[radkey][:,:,cz_end:,:,:,:]],dim=hkey)
+    else:
+        rads = xr.concat([ds[radkey][:,:,0:cz_start,:,:,:],ds[radkey][:,:,cz_start:cz_end:div,:,:,:],ds[radkey][:,:,cz_end:,:,:,:]],dim=hkey)
     out = ds.drop_dims(hkey)
     out[radkey] = rads
     
-    Edir = xr.concat([flx["Edir"][:,:,cz_start:cz_end:div],flx["Edir"][:,:,cz_end:]],dim="z")
-    Edown = xr.concat([flx["Edown"][:,:,cz_start:cz_end:div],flx["Edown"][:,:,cz_end:]],dim="z")
-    Eup = xr.concat([flx["Eup"][:,:,cz_start:cz_end:div],flx["Eup"][:,:,cz_end:]],dim="z")
+    if cz_start == 0:
+        Edir = xr.concat([flx["Edir"][:,:,cz_start:cz_end:div],flx["Edir"][:,:,cz_end:]],dim="z")
+        Edown = xr.concat([flx["Edown"][:,:,cz_start:cz_end:div],flx["Edown"][:,:,cz_end:]],dim="z")
+        Eup = xr.concat([flx["Eup"][:,:,cz_start:cz_end:div],flx["Eup"][:,:,cz_end:]],dim="z")
+    else:
+        Edir = xr.concat([flx["Edir"][:,:,0:cz_start],flx["Edir"][:,:,cz_start:cz_end:div],flx["Edir"][:,:,cz_end:]],dim="z")
+        Edown = xr.concat([flx["Edown"][:,:,0:cz_start],flx["Edown"][:,:,cz_start:cz_end:div],flx["Edown"][:,:,cz_end:]],dim="z")
+        Eup = xr.concat([flx["Eup"][:,:,0:cz_start],flx["Eup"][:,:,cz_start:cz_end:div],flx["Eup"][:,:,cz_end:]],dim="z")
+
     out_flx = flx.drop_dims("z")
     out_flx["Edown"] = Edown
     out_flx["Eup"] = Eup
     out_flx["Edir"] = Edir
-    
-    kext = xr.concat([op["caoth3d_0_wc_ext"][0:50//div,:,:],op["caoth3d_0_wc_ext"][cz_end:,:,:]],dim="caoth3d_0_wc_nlyr")
-    w0 = xr.concat([op["caoth3d_0_wc_ssa"][0:50//div,:,:],op["caoth3d_0_wc_ssa"][cz_end:,:,:]],dim="caoth3d_0_wc_nlyr")
-    g1 = xr.concat([op["caoth3d_0_wc_g1"][0:50//div,:,:],op["caoth3d_0_wc_g1"][cz_end:,:,:]],dim="caoth3d_0_wc_nlyr")
-    opz = xr.concat([op["output_mc.z"][cz_start:cz_end:div],op["output_mc.z"][cz_end:]],dim="nlev")
+   
+    if cz_start == 0:
+        kext = xr.concat([op["caoth3d_0_wc_ext"][0:50//div,:,:],op["caoth3d_0_wc_ext"][cz_end:,:,:]],dim="caoth3d_0_wc_nlyr")
+        w0 = xr.concat([op["caoth3d_0_wc_ssa"][0:50//div,:,:],op["caoth3d_0_wc_ssa"][cz_end:,:,:]],dim="caoth3d_0_wc_nlyr")
+        g1 = xr.concat([op["caoth3d_0_wc_g1"][0:50//div,:,:],op["caoth3d_0_wc_g1"][cz_end:,:,:]],dim="caoth3d_0_wc_nlyr")
+        opz = xr.concat([op["output_mc.z"][cz_start:cz_end:div],op["output_mc.z"][cz_end:]],dim="nlev")
+    else:
+        kext = xr.concat([op["caoth3d_0_wc_ext"][0:cz_start,:,:],op["caoth3d_0_wc_ext"][cz_start:cz_end:div,:,:],op["caoth3d_0_wc_ext"][cz_end:,:,:]],dim="caoth3d_0_wc_nlyr")
+        w0 = xr.concat([op["caoth3d_0_wc_ssa"][0:cz_start,:,:],op["caoth3d_0_wc_ssa"][cz_start:cz_end:div,:,:],op["caoth3d_0_wc_ssa"][cz_end:,:,:]],dim="caoth3d_0_wc_nlyr")
+        g1 = xr.concat([op["caoth3d_0_wc_g1"][0:cz_start,:,:],op["caoth3d_0_wc_g1"][cz_start:cz_end:div,:,:],op["caoth3d_0_wc_g1"][cz_end:,:,:]],dim="caoth3d_0_wc_nlyr")
+        opz = xr.concat([op["output_mc.z"][0:cz_start],op["output_mc.z"][cz_start:cz_end:div],op["output_mc.z"][cz_end:]],dim="nlev")
 
 
     out_op = op.drop_dims("caoth3d_0_wc_nlyr").drop_dims("nlev")
@@ -210,31 +224,65 @@ def half_phi(ds, radkey, phikey, outpath=None):
     return out
 
 
-names = ["irr_from_10s_twostr_only","irr_from_mystic_mcipa","irr_from_mystic","irr_from_10s_base"]
-   
-flxn = ["../radiances/flx_10s_twostr_only.nc","../radiances/job_flx/flx_mcipa.nc","../radiances/job_flx/flx_base_backup.nc","../radiances/flx_10s_base.nc"]
 
-for iflx,fname in enumerate(names):
+#for div in [2,4,8]:
+#    rad = half_mu(half_phi(rad,"radiance", "phi"), "radiance", "mu")
+#    rad.to_netcdf("rad_philipp_16x16_meaned_to_" + str(16//div) + "x" + str(16//div) + ".nc")
+#
+#rad = half_phi(rad,"radiance","phi")
+#rad.to_netcdf("rad_philipp_16x16_meaned_to_meaned_to_2x1.nc")
 
+rad = xr.open_dataset("rad_checkerboard_32x32_meaned_to_32x32.nc")
+op = xr.open_dataset("op_checkerboard_32x32.nc")
+flx = xr.open_dataset("flx_checkerboard_32x32.nc")
 
-    rad =xr.open_dataset(fname + ".nc")
-    op = xr.open_dataset("test.optical_properties.nc")
-    flx = xr.open_dataset(flxn[iflx])
-    #rad = rad.load()
-
-    rkey = "radiance"
-
+for i in [32,16,8,4,2]:
+    op = xr.open_dataset("op_checkerboard_32x32.nc")
+    flx = xr.open_dataset("flx_checkerboard_32x32.nc")
+    rad = xr.open_dataset("rad_checkerboard_32x32_meaned_to_{}x{}.nc".format(str(i),str(i)))
     for div in [1,2,5,10,25,50]:
+        r,o,f = half_levels(rad, "radiance", "z", op, flx, div)
+        r.to_netcdf("checkerboard_perf/rad_checkerboard_32x32_meaned_to_{}x{}_zdiv{}.nc".format(str(i),str(i),str(div)))
+        o.to_netcdf("checkerboard_perf/op_checkerboard_32x32_zdiv{}.nc".format(str(div)))
+        f.to_netcdf("checkerboard_perf/flx_checkerboard_32x32_zdiv{}.nc".format(str(div)))
 
-        out_rad, out_op, out_flx = half_levels(rad,rkey,"z",op,flx,div)
-        out_rad.to_netcdf(fname + "_div" +str(int(div)) + ".nc")
-        #out_op.to_netcdf("op_levels_div" + str(int(div)) + ".nc")
-        out_flx.to_netcdf("flx_levels_"+ fname  +"_div" + str(int(div)) + ".nc")
-    
-    rad.close()
-    op.close()
-    flx.close()
+rad = xr.open_dataset("rad_checkerboard_32x32_meaned_to_2x1.nc")
+for div in [1,2,5,10,25,50]:
+    r,o,f = half_levels(rad, "radiance", "z", op, flx, div)
+    r.to_netcdf("checkerboard_perf/rad_checkerboard_32x32_meaned_to_2x1_zdiv{}.nc".format(str(div)))
 
+rad = xr.open_dataset("irr_checkerboard_32x32.nc")
+for div in [1,2,5,10,25,50]:
+    r,o,f = half_levels(rad, "radiance", "z", op, flx, div)
+    r.to_netcdf("checkerboard_perf/irr_checkerboard_32x32_zdiv{}.nc".format(str(div)))
+
+
+
+#names = ["irr_from_10s_twostr_only","irr_from_mystic_mcipa","irr_from_mystic","irr_from_10s_base"]
+#   
+#flxn = ["../radiances/flx_10s_twostr_only.nc","../radiances/job_flx/flx_mcipa.nc","../radiances/job_flx/flx_base_backup.nc","../radiances/flx_10s_base.nc"]
+#
+#for iflx,fname in enumerate(names):
+#
+#
+#    rad =xr.open_dataset(fname + ".nc")
+#    op = xr.open_dataset("test.optical_properties.nc")
+#    flx = xr.open_dataset(flxn[iflx])
+#    #rad = rad.load()
+#
+#    rkey = "radiance"
+#
+#    for div in [1,2,5,10,25,50]:
+#
+#        out_rad, out_op, out_flx = half_levels(rad,rkey,"z",op,flx,div)
+#        out_rad.to_netcdf(fname + "_div" +str(int(div)) + ".nc")
+#        #out_op.to_netcdf("op_levels_div" + str(int(div)) + ".nc")
+#        out_flx.to_netcdf("flx_levels_"+ fname  +"_div" + str(int(div)) + ".nc")
+#    
+#    rad.close()
+#    op.close()
+#    flx.close()
+#
 
 #nlist = [50,25,10,5,2,1]
 #for n in nlist:
