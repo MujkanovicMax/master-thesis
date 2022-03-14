@@ -10,7 +10,7 @@ angles_list = np.array([2,4,8,16,32,64])
 rmse_mat = np.zeros((angles_list.shape[0],angles_list.shape[0]))
 rmse_g_mat = np.zeros_like(rmse_mat)
 
-irr = xr.open_dataset("./job_flx/mc.flx.spc.nc")
+irr = xr.open_dataset("./job_flx/flx_base_backup.nc")
 
 
 for n,i in enumerate(angles_list):
@@ -25,8 +25,8 @@ z=rmse_g_mat*100
 
 plt.figure(1)
 plt.clf()
-plt.xlabel("Number of Mu")
-plt.ylabel("Number of Phi")
+plt.xlabel("Number of polar angle samples")
+plt.ylabel("Number of azimuth angle samples")
 plt.title("RMSE of integrated irradiance to mystic irradiance")
 lvls=[np.min(z),1.8,2,5,7,10,50,100,np.max(z)]
 cs = plt.contour(x,y,z,levels=lvls,colors="k")

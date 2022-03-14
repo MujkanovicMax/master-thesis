@@ -5,31 +5,31 @@ set -eu -o pipefail
 SCRIPTDIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 WORKDIR="$SCRIPTDIR/../"   
 LIBRAD=$WORKDIR/libRadtran
-SAVEDIR=$WORKDIR/radiances/rad_checkerboard_32x32
-PANDIR=$SAVEDIR/job_panorama
+SAVEDIR=$WORKDIR/radiances/homowolke
+PANDIR=$SAVEDIR/job_panorama_sza20
 TRACEDIR=$WORKDIR/trace_test
 CLOUDDIR=$WORKDIR/radiances/clouds
-ATM=$WORKDIR/radiances/stdatm/afglus_checkerboard.dat  
+ATM=$WORKDIR/radiances/stdatm/afglus.dat  
 
 #number of angles for radiancesi (can be lists)
-nm="32"                                          # 1 2 4 6 8 10 16 32
-np="32"
+nm="16"                                          # 1 2 4 6 8 10 16 32
+np="16"
 
 #dirs and filenames
-PANFN="panorama_checkerboard.nc" 
-cloudfn="wc3d_checkerboard_full.dat"
-radfn="rad_checkerboard_32x32.nc"
-outputfn="output2d_checkerboard_32x32.nc"
+PANFN="panorama_homogeneous.nc" 
+cloudfn="wc3d_hom.dat"
+radfn="rad_homogeneous_32x32.nc"
+outputfn="output2d_homogeneous_32x32.nc"
 
 #simulation data
 ALBEDO=0.2
 WAVELENGTH=500
-SAMPLEGRID="2 2 1 1"            #"nx ny dx dy"; nx ny number of boxes in x and y; dx dy box lengths in km
+SAMPLEGRID="1 1 1 1"            #"nx ny dx dy"; nx ny number of boxes in x and y; dx dy box lengths in km
 
 #angles
-SZA=45                          #solar zenith angle
+SZA=20                          #solar zenith angle
 PHI0=270                        #where the sun is shining from (0 north, 90 west, 180 south, 270 east)
-nsub=5                          #number of subdivisions for phase function calculation
+nsub=0                          #number of subdivisions for phase function calculation
 
 #camera data
 fov_phi1="-45"                  #
@@ -46,8 +46,8 @@ zloc=5
 
 #photon numbers
 PHOTONS=1000000                 # ???
-cam_photons=100                 #number of photons for mystic panorama cam
-REP=100                         #number of repetitions for mystoc panorama calculations
+cam_photons=1000                 #number of photons for mystic panorama cam
+REP=100                        #number of repetitions for mystoc panorama calculations
 
 
 #main loop execution
@@ -103,10 +103,10 @@ do
     #bash checkforpano.sh "$PANDIR" "$REP" 
 
     #generate optical properties and flx file
-    bash gen_opprop.sh "$UMUS" "$PHIS" "$cloudfn" "$LIBRAD" "$SAVEDIR" "$CLOUDDIR" "$WORKDIR "$WORKDIR"" "$i"
+    #bash gen_opprop.sh "$UMUS" "$PHIS" "$cloudfn" "$LIBRAD" "$SAVEDIR" "$CLOUDDIR" "$WORKDIR "$WORKDIR"" "$i"
     
 	#combine radiances into netcdf
-    #python3 mergerads.py -Nmu $NUMU -1 1 -Nphi $NPHIS -radfn $radfn -loc $SAVEDIR -panfn $PANFN -rep $REP -locpan $PANDIR 
+    python3 mergerads.py -Nmu $NUMU -1 1 -Nphi $NPHIS -radfn $radfn -loc $SAVEDIR -panfn $PANFN -rep $REP -locpan $PANDIR 
         
     #generate config
     #bash gen_config.sh "$SAVEDIR/$radfn" "$SAVEDIR/test.optical_properties.nc" "$SAVEDIR/mc.flx.spc.nc" "$outputfn" "$DX" "$DY" "$ALBEDO" "$xpixel" "$ypixel" "$fov_phi1" "$fov_phi2" \

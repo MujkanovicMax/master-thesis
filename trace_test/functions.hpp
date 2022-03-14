@@ -11,7 +11,7 @@
 #include <string>
 #include <fstream>
 #include <algorithm>
-
+#include <exception>
 
 template <size_t N>
 constexpr std::array<size_t,N> indexDecompose(size_t index, const std::array<size_t,N>& shape) {
@@ -39,6 +39,57 @@ constexpr size_t indexRecompose(std::array<size_t,N> index, const std::array<siz
         out += index[i];
     }
     return out;
+}
+
+Eigen::Matrix3d transform_world_to_local(Eigen::Vector3d ex,Eigen::Vector3d ey,Eigen::Vector3d ez){
+
+    Eigen::Vector3d kx(1,0,0);
+    Eigen::Vector3d ky(0,1,0);
+    Eigen::Vector3d kz(0,0,1);
+    Eigen::Matrix3d M;
+    M(0,0) = ex.dot(kx);
+    M(0,1) = ex.dot(ky);
+    M(0,2) = ex.dot(kz);
+    M(1,0) = ey.dot(kx);
+    M(1,1) = ey.dot(ky);
+    M(1,2) = ey.dot(kz);
+    M(2,0) = ez.dot(kx);
+    M(2,1) = ez.dot(ky);
+    M(2,2) = ez.dot(kz);
+
+    return M;
+
+}
+
+Eigen::Matrix3d rot_atob(Eigen::Vector3d a, Eigen::Vector3d b){
+    
+    double ab = a.dot(b);
+    Eigen::Vector3d axb = a.cross(b);
+    double naxb = axb.norm();
+    
+    Eigen::Matrix3d G;
+    G <<    ab,-naxb,0,
+            naxb,ab,0,
+            0,0,1;
+
+    Eigen::Vector3d u = a.normalized();
+    Eigen::Vector3d v = (b-(ab*a)).normalized();
+    Eigen::Vector3d w = axb.normalized();
+    
+    Eigen::Matrix3d Finv;
+    Finv << u[0],v[0],w[0],
+            u[1],v[1],w[1],
+            u[2],v[2],w[2];
+    
+    Eigen::Matrix3d F = Finv.inverse();
+    
+    return Finv * G * F;
+
+
+
+
+
+
 }
 
 Eigen::Vector3d angleToVec(double mu, double phi) {
@@ -71,26 +122,36 @@ std::vector<double> calcStreamDirs(const std::vector<double>& mus, const std::ve
 }
 
 std::vector<double> calcSubstreamDirs(const std::vector<double>& mus, const std::vector<double>& phis, const std::vector<double>& wmus, const std::vector<double>& wphis, size_t nmu, size_t nphi, size_t nsub) {
+    std::cout << "Start Substream\n\n";
     double wmu_s = -1;
     double wmu_e;
     std::vector<double> substreams = {};
     substreams.resize(nmu*nphi*nsub*nsub*3);
     for(size_t i = 0; i < nmu; ++i) {
         wmu_e = wmu_s + wmus[i];
+        std::cout << "WmuStart = " << wmu_s << "  WmuEnd = " << wmu_e << "\n";
         for(size_t j = 0; j < nphi; ++j) {
             double delmu = (wmu_e-wmu_s)/nsub;
             double delphi = wphis[j]/M_PI*180/nsub;
-            double wphi_s = phis[j] - wphis[j]/M_PI*180/2; //def wphi_s = phis[j] - wphis[j]/2 wahrscheinlich falsch weil phi in ° und wphi in rad
+            double wphi_s = phis[j] - wphis[j]/M_PI*180/2; 
             double wphi_e = phis[j] + wphis[j]/M_PI*180/2; //def wphi_e = phis[j] + wphis[j]/2
-
+            std::cout << "Wphi_start = " << wphi_s <<  "  Wphi_end = " << wphi_e << "\n";
             //if(wphi_s < 0){ wphi_s = 0;}
             //if(wphi_e > 360){ wphi_e = 360;}
             //std::cout << wphi_s << "    " << phis[j] << "   " << wphis[j] << "\n";
+            //std::ofstream streamdirs;
+            //streamdirs.open("streamdirs.txt", std::ios_base::app);
+            //streamdirs << angleToVec(mus[i],phis[j]) << "\n";
             for(size_t is = 0; is<nsub; ++is){
                 double m = wmu_s + (is+0.5) * delmu;
                 for(size_t js = 0; js<nsub; ++js){
                     double p = wphi_s + (js+0.5) * delphi;
+                    //std::cout << "m = " << m << "  p = " << p << "\n";
                     Eigen::Vector3d dir = angleToVec(m,p);
+                    
+                    //std::ofstream substreamdirs;
+                    //substreamdirs.open("substreamdirs.txt", std::ios_base::app);
+                    //substreamdirs << dir << "\n";
                     for(size_t x = 0; x < 3; ++x) {
                         size_t idx = indexRecompose(std::array<size_t,5>{i,j,is,js,x}, std::array<size_t,5>{nmu,nphi,nsub,nsub,3});
                         substreams[idx] = dir[x];
@@ -100,6 +161,7 @@ std::vector<double> calcSubstreamDirs(const std::vector<double>& mus, const std:
         }
         wmu_s = wmu_e;
     }
+    std::cout << "End substream\n";
     return substreams;
 }
 
@@ -145,31 +207,49 @@ double calc_IHG( double wmu_s, double wmu_e, double phi, double wphi, const Ray&
 
 }
 
-double calc_pHG(double wmu_s, double wmu_e, double phi, double wphi, const Ray& ray, double g, size_t n, const std::vector<double>& substreams, size_t mu_i, size_t phi_j, size_t nmu, size_t nphi){
-    //double delmu = (wmu_e-wmu_s)/n;
-    //double delphi = wphi/n;
-    double pf = 0;
-    //double weightsum = 0;
-    //double wphi_s = phi - wphi/2;
-    //double wphi_e = phi + wphi/2;
+double getphi(Eigen::Vector3d vec){
+    
+    double angle = atan2(vec[1], vec[0]);
+    angle = angle / M_PI * 180.;
+    angle = fmod(angle + 360,360);    //(angle + 360) % 360;
 
-    ///test///
-    // Eigen::Vector3d dir_s, dir_e;
-    // for(size_t x = 0; x<3; ++x) {
-    //         size_t l1 = indexRecompose(std::array<size_t,5>{mu_i,phi_j,0,0,x}, std::array<size_t,5>{nmu,nphi,n,n,3});
-    //         size_t l2 = indexRecompose(std::array<size_t,5>{mu_i,phi_j,n-1,n-1,x}, std::array<size_t,5>{nmu,nphi,n,n,3});
-    //         dir_s[x] = substreams[l1];
-    //         dir_e[x] = substreams[l2];
-    //     }
-    // double mu_s = (-ray.d).dot(dir_s);
-    // double mu_e = (-ray.d).dot(dir_e);
-    // 
-    // double pf_alt = integrated_HG(g,mu_s,mu_e); 
-    // //return pf;
-    //////////
-    //double sa_min=10;
+    return angle / 180. * M_PI;
+
+
+
+
+
+}
+
+Eigen::Matrix3d rotation_matrix_z(double angle){
+    
+    Eigen::Matrix3d M;
+    double s = sin(angle);
+    double c = cos(angle);
+    
+    M(0,0) = c;
+    M(0,1) = -s;
+    M(0,2) = 0; 
+    M(1,0) = s;
+    M(1,1) = c;
+    M(1,2) = 0;
+    M(2,0) = 0;
+    M(2,1) = 0;
+    M(2,2) = 1;
+
+    return M;
+
+}
+
+double calc_pHG(double wmu_s, double wmu_e, double phi, double wphi, const Ray& ray, double g, size_t n, Eigen::Vector3d stream, const std::vector<double>& substreams, size_t mu_i, size_t phi_j, size_t nmu, size_t nphi){
+    
+    double pf = 0;
     double sa;
-    //double sa_max=-10;
+    
+    Eigen::Matrix3d R = rot_atob(stream, -ray.d);
+    
+
+    pf += phase_HG(g, sa);
     for(size_t i = 0; i<n; ++i){
         //double m = wmu_s + (i+0.5) * delmu;
         for(size_t j = 0; j<n; ++j){
@@ -180,11 +260,19 @@ double calc_pHG(double wmu_s, double wmu_e, double phi, double wphi, const Ray& 
                 size_t li = indexRecompose(std::array<size_t,5>{mu_i,phi_j,i,j,x}, std::array<size_t,5>{nmu,nphi,n,n,3});
                 dir[x] = substreams[li];
             }
+
+            //std::ofstream substreamdirs;
+            //substreamdirs.open("substreamdirs.txt", std::ios_base::app);
+            //substreamdirs << dir << "\n";
+            //substreamdirs.close();
+            //test stuff without R
+            Eigen::Vector3d newdir = R*dir;
             sa = (-ray.d).dot(dir);
             //sa = -ray.d[0] * dir[0] - ray.d[1] * dir[1] - ray.d[2] * dir[2];
             //if(sa_min > sa){sa_min=sa;}
             //if(sa_max < sa){sa_max=sa;}
             pf += phase_HG(g, sa);
+            //std::cout << "ss agnl = " << sa << "  pf = " << pf <<"\n";
             //weightsum += 1;
             if(pf < 0){std::cout << " negative \n";}
         }
@@ -192,125 +280,11 @@ double calc_pHG(double wmu_s, double wmu_e, double phi, double wphi, const Ray& 
     //double pf_alt = integrated_HG(g,sa_min,sa_max);
     //std::cout << "pf = " << pf/(n*n) << " pf_alt = " << pf_alt << " sa_s = " << sa_min << " sa_e = " << sa_max  << "\n";
     //return pf_alt;
-    return pf/(n*n);
+    return pf/(n*n+1);
 }
 
-//std::array<double, 3> calc_Ldiff_tenstream(const Ray& ray, double dx, double dy, std::vector<double>& zlev,double tfar, double tnear, 
-//        size_t idx, double kext, double dtau, double g1, size_t nx, size_t ny, size_t nlyr, size_t nmu, size_t nphi,
-//        const std::vector<double>& mu, const std::vector<double>& phi, const std::vector<double>& wmu, const std::vector<double>& wphi, 
-//        const std::vector<double>& rad, const std::vector<double>& streams, size_t nsub, const std::vector<double>& substreams) {
-//
-//    //    Tenstream Streams: For Box: top 2, left 4, back 4 
-//    //    0     Eup
-//    //    1     Edown
-//    //    2     E x bottom left out
-//    //    3     E x bottom left in
-//    //    4     E x top left out
-//    //    5     E x top left in
-//    //    6     E y bottom back out
-//    //    7     E y bottom back in
-//    //    8     E y top back out
-//    //    9    E y top back in
-//    //    for all inward streams information from neighbouring boxes is needed !!
-//    
-//    Eigen::MatrixX3 dist(3,nstreams); 
-//    Eigen::VectorXd w(nstreams);
-//    Eigen::VectorXd w2(nstreams);
-//    Eigen::MatrixXd m(3,nstreams);
-//
-//    Eigen::Vector3d P = ray(tnear + dist);
-//    Eigen::Vector3d top((x+0.5)*dx,(y+0.5)*dy,zlev[z+1]);
-//    Eigen::Vector3d bottom((x+0.5)*dx,(y+0.5)*dy,zlev[z]);
-//    Eigen::Vector3d left_bottom(x*dx,(y+0.5)*dy,(zlev[z+1] - zlev[z])*0.25 + zlev[z]);
-//    Eigen::Vector3d left_top(x*dx,(y+0.5)*dy,(zlev[z+1] - zlev[z])*0.75 + zlev[z]);
-//    Eigen::Vector3d right_bottom((x+1)*dx,(y+0.5)*dy,(zlev[z+1] - zlev[z])*0.25 + zlev[z]);
-//    Eigen::Vector3d right_top((x+1)*dx,(y+0.5)*dy,(zlev[z+1] - zlev[z])*0.75 + zlev[z]);
-//    Eigen::Vector3d back_bottom((x+0.5)*dx,(y+1)*dy,(zlev[z+1] - zlev[z])*0.25 + zlev[z]);
-//    Eigen::Vector3d back_top((x+0.5)*dx,(y+1)*dy,(zlev[z+1] - zlev[z])*0.75 + zlev[z]);
-//    Eigen::Vector3d front_bottom((x+0.5)*dx,(y+0)*dy,(zlev[z+1] - zlev[z])*0.25 + zlev[z]);
-//    Eigen::Vector3d front_top((x+0.5)*dx,(y+0)*dy,(zlev[z+1] - zlev[z])*0.75 + zlev[z]);
-//    
-//    m.col(0) = top;
-//    m.col(1) = left_top;
-//    m.col(2) = right_top;
-//    m.col(3) = back_top;
-//    m.col(4) = front_top;
-//    m.col(5) = bottom;
-//    m.col(6) = left_bottom;
-//    m.col(7) = right_bottom;
-//    m.col(8) = back_bottom;
-//    m.col(9) = front_bottom;
-//    
-//    double total_dist = 0;
-//    for(size_t j=0; j<nstreams; ++j){
-//        
-//        dist.col(j) = P-m.col(j);
-//        for(size_t i; i<3; ++i){
-//            
-//            double x1 = dist.col(j)[0];
-//            double x2 = dist.col(j)[1];
-//            double x3 = dist.col(j)[2];
-//            
-//            w[j] = std::sqrt(x1*x1 + x2*x2 + x3*x3);
-//            total_dist += w[j]; 
-//
-//        }
-//
-//    }
-//    
-//    for(size_t j=0; j<nstreams; ++j){
-//
-//        w[j] *= w[j]*w[j];
-//        w[j] = 1-w[j]/total_dist;
-//
-//    }
-//    
-//    Eigen::VectorXd iup(nstreams);
-//    Eigen::VectorXd idown(nstreams);
-//
-//    //downward streams
-//    idown[0] = indexRecompose(std::array<size_t,3>{y,x,z,1},std::array<size_t,5>{ny,nx,nlyr+1,nstream});
-//    idown[1] = indexRecompose(std::array<size_t,3>{y,x,z,5},std::array<size_t,5>{ny,nx,nlyr+1,nstream});
-//    idown[2] = indexRecompose(std::array<size_t,3>{y,x+1,z,4},std::array<size_t,5>{ny,nx,nlyr+1,nstream});
-//    idown[3] = indexRecompose(std::array<size_t,3>{y,x,z,9},std::array<size_t,5>{ny,nx,nlyr+1,nstream});
-//    idown[4] = indexRecompose(std::array<size_t,3>{y+1,x,z,8},std::array<size_t,5>{ny,nx,nlyr+1,nstream});
-//    idown[5] = indexRecompose(std::array<size_t,3>{y,x,z-1,1},std::array<size_t,5>{ny,nx,nlyr+1,nstream});
-//    idown[6] = indexRecompose(std::array<size_t,3>{y,x,z,2},std::array<size_t,5>{ny,nx,nlyr+1,nstream});
-//    idown[7] = indexRecompose(std::array<size_t,3>{y,x+1,z,3},std::array<size_t,5>{ny,nx,nlyr+1,nstream});
-//    idown[8] = indexRecompose(std::array<size_t,3>{y,x,z,6},std::array<size_t,5>{ny,nx,nlyr+1,nstream});
-//    idown[9] = indexRecompose(std::array<size_t,3>{y+1,x,z,7},std::array<size_t,5>{ny,nx,nlyr+1,nstream});
-//    
-//    //upward streams
-//    iup[0] = indexRecompose(std::array<size_t,3>{y,x,z,0},std::array<size_t,5>{ny,nx,nlyr+1,nstream});
-//    iup[1] = indexRecompose(std::array<size_t,3>{y,x,z,4},std::array<size_t,5>{ny,nx,nlyr+1,nstream});
-//    iup[2] = indexRecompose(std::array<size_t,3>{y,x+1,z,5},std::array<size_t,5>{ny,nx,nlyr+1,nstream});
-//    iup[3] = indexRecompose(std::array<size_t,3>{y,x,z,8},std::array<size_t,5>{ny,nx,nlyr+1,nstream});
-//    iup[4] = indexRecompose(std::array<size_t,3>{y+1,x,z,9},std::array<size_t,5>{ny,nx,nlyr+1,nstream});
-//    iup[5] = indexRecompose(std::array<size_t,3>{y,x,z-1,0},std::array<size_t,5>{ny,nx,nlyr+1,nstream});
-//    iup[6] = indexRecompose(std::array<size_t,3>{y,x,z,3},std::array<size_t,5>{ny,nx,nlyr+1,nstream});
-//    iup[7] = indexRecompose(std::array<size_t,3>{y,x+1,z,2},std::array<size_t,5>{ny,nx,nlyr+1,nstream});
-//    iup[8] = indexRecompose(std::array<size_t,3>{y,x,z,7},std::array<size_t,5>{ny,nx,nlyr+1,nstream});
-//    iup[9] = indexRecompose(std::array<size_t,3>{y+1,x,z,6},std::array<size_t,5>{ny,nx,nlyr+1,nstream});
-//
-//
-//
-//
-//    for(size_t i = 0; i<nstreams; ++i){
-//        
-//        Ldown += Et[idown[i]]*w[i]/cos[i];
-//        Lup += Et[iup[i]]*w[i]/cos[i];
-//
-//    }
-//
-//
-//
-//
-//
-//
-//}
 
-
-std::array<double,3> calc_Ldiff(const Ray& ray, double dx, double dy, const std::vector<double>& zlev,double tfar, double tnear, size_t idx, double kext, 
+std::array<double,3> calc_Ldiff(const Ray& ray, int mode, double dx, double dy, const std::vector<double>& zlev,double tfar, double tnear, size_t idx, double kext, 
         double dtau, double g1, size_t nx, size_t ny, size_t nlyr, size_t nmu, size_t nphi, const std::vector<double>& mu, const std::vector<double>& phi, 
         const std::vector<double>& wmu, const std::vector<double>& wphi, const std::vector<double>& rad, 
         const std::vector<double>& streams, size_t nsub, const std::vector<double>& substreams) {
@@ -338,10 +312,37 @@ std::array<double,3> calc_Ldiff(const Ray& ray, double dx, double dy, const std:
         double u3 = zlev[z+1];
         double pu = (P[0]-l1)*(P[0]-l1) + (P[1]-l2)*(P[1]-l2) + (P[2]-u3)*(P[2]-u3);
         double pl = (P[0]-l1)*(P[0]-l1) + (P[1]-l2)*(P[1]-l2) + (P[2]-l3)*(P[2]-l3);
-        pu *= pu*pu;
-        pl *= pl*pl;
-        alpha =  1-pu/(pl+pu);
-        beta = 1 - alpha;
+        if(mode == 0){
+            pu *= pu*pu;
+            pl *= pl*pl;
+            alpha =  1-pu/(pl+pu);
+            beta = 1 - alpha;
+        }
+        else if(mode == 1){
+            pu *= pu;
+            pl *= pl;
+            alpha =  1-pu/(pl+pu);
+            beta = 1 - alpha;
+        }
+        else if(mode == 2){
+            pu *= pu*pu*pu;
+            pl *= pl*pl*pl;
+            alpha =  1-pu/(pl+pu);
+            beta = 1 - alpha;
+
+        }
+        else if(mode == 3){
+            alpha = 1;
+            beta = 0;
+        }
+        else if(mode == 4){
+            alpha = 0;
+            beta = 1;
+        }
+        else if(mode == 5){
+            alpha = 0.5;
+            beta = 0.5;
+        }
     }
 
     if(ray.d[2] > 0){
@@ -372,7 +373,8 @@ std::array<double,3> calc_Ldiff(const Ray& ray, double dx, double dy, const std:
 
                     double muscatter = (-ray.d).dot(lvec);
                     pf = weight * phase_HG(g1, muscatter);
-
+                    //std::cout << "muscatter = " << muscatter << "  mu = " << mu[i] << "  phi = " << phi[j] << "\n"; 
+                    //std::cout << "HG = " << pf;       
                 }
 
             }
@@ -386,10 +388,21 @@ std::array<double,3> calc_Ldiff(const Ray& ray, double dx, double dy, const std:
                     for(size_t x = 0; x<3; ++x) {
                         size_t li = indexRecompose(std::array<size_t,3>{i,j,x}, std::array<size_t,3>{nmu,nphi,3});
                         lvec[x] = streams[li];
-                    }
+                        } 
+                    //Eigen::Vector3d ex(lvec[0],lvec[1],lvec[2]);
+                    //Eigen::Vector3d ez(-ray.d[0], -ray.d[1], -ray.d[2]);
+                    //Eigen::Vector3d ey = (ez.cross(ex)).normalized();
+                    //ex = ey.cross(ez);
+                    //Eigen::Matrix3d transform = transform_world_to_local(ex,ey,ez);
+                    //std::cout << lvec << "\n";
+                    //std::ofstream streamdirs;
+                    //streamdirs.open("streamdirs.txt", std::ios_base::app);
+                    //streamdirs << lvec << "\n";
+                    //streamdirs.close();
                     double muscatter = (-ray.d).dot(lvec);
-                    pf = weight * calc_pHG(wmu_s, wmu_e, phi[j], wphi[j], ray, g1, nsub, substreams,i,j,nmu,nphi);
-
+                    pf = weight * calc_pHG(wmu_s, wmu_e, phi[j], wphi[j], ray, g1, nsub, lvec,substreams,i,j,nmu,nphi);
+                    //std::cout << "; pHG = " << pf << "\n";
+                    //throw std::exception();
                 }
 
             }
@@ -407,7 +420,7 @@ std::array<double,3> calc_Ldiff(const Ray& ray, double dx, double dy, const std:
     }
     return std::array<double,3>{Lup + Ldown,Lup,Ldown}; 
 }
-void calc_image(auto grid, auto cam, double Nxpixel, double Nypixel, double dx, double dy, const std::vector<double>& zlev, const std::vector<double>& kext, 
+void calc_image(auto grid, auto cam, int mode, double Nxpixel, double Nypixel, double dx, double dy, const std::vector<double>& zlev, const std::vector<double>& kext, 
         const std::vector<double>& g1, const std::vector<double>& w0, double albedo, double muEdir, size_t nx, size_t ny, size_t nlyr, 
         size_t nmu, size_t nphi, const std::vector<double>& mus, const std::vector<double>& phis, const std::vector<double>& wmus, 
         const std::vector<double>& wphis, const Eigen::Vector3d& sza_dir, const std::vector<double>& Edir, const std::vector<double>& radiances, 
@@ -421,6 +434,8 @@ void calc_image(auto grid, auto cam, double Nxpixel, double Nypixel, double dx, 
     size_t a,b,c;
     //Main loop
     std::cout << "Starting Raytracer..." << "\n";
+    //Nxpixel = 1;
+    //Nypixel = 3;
 
     for (size_t i = 0; i < Nxpixel; ++i){
         double xpx = (i + 0.5) / Nxpixel;
@@ -429,7 +444,7 @@ void calc_image(auto grid, auto cam, double Nxpixel, double Nypixel, double dx, 
 
             double ypx = (j + 0.5) / Nypixel;
             auto ray = cam.compute_ray(Eigen::Vector2d{xpx, ypx});
-
+            //std::cout << "\n ray dir = " << ray.d << "\n";
             //sum zeroing
             double optical_thickness = 0;
             double radiance = 0;
@@ -455,7 +470,7 @@ void calc_image(auto grid, auto cam, double Nxpixel, double Nypixel, double dx, 
                     double dtau = (pvol->tfar - pvol->tnear) * kext[optprop_index];
                     optical_thickness += dtau;
                     double phase_function = phase_HG(g1[optprop_index], (-ray.d).dot(sza_dir.normalized()));
-                    auto [Lup_Plus_Ldown, Lup, Ldown] = calc_Ldiff(ray, dx, dy, zlev, pvol->tfar, pvol->tnear, pvol->idx, kext[optprop_index], 
+                    auto [Lup_Plus_Ldown, Lup, Ldown] = calc_Ldiff(ray, mode, dx, dy, zlev, pvol->tfar, pvol->tnear, pvol->idx, kext[optprop_index], 
                             dtau, g1[optprop_index], nx, ny, nlyr, nmu, nphi, mus, phis, wmus, wphis, radiances, streams, nsub, substreams);
                     double scatter_prob = - expm1(-dtau*w0[optprop_index]);
 
@@ -553,9 +568,7 @@ void read_radiances( std::string fpath, std::vector<double>& radiances, std::vec
 
 void read_opprop( std::string fpath, std::vector<double>& kext, std::vector<double>& zlev, std::vector<double>& w0, std::vector<double>& g1, size_t& nlev, size_t& nlyr, size_t& nx, size_t& ny )
 {
-
     using namespace netCDF;
-
     NcFile file(fpath, NcFile::FileMode::read);
     nlev = file.getDim("nlev").getSize();
     nlyr = file.getDim("caoth3d_0_wc_nlyr").getSize();
@@ -576,18 +589,19 @@ void read_flx( std::string fpath, std::vector<double>& Edir, std::vector<double>
 {
 
     using namespace netCDF;
-
+    std::cout << "file" << "\n";
     NcFile file(fpath, NcFile::FileMode::read);
     size_t Nx = file.getDim("x").getSize();
     size_t Ny = file.getDim("y").getSize();
     size_t Nz = file.getDim("z").getSize();
     size_t Nwvl = file.getDim("wvl").getSize();
-
+    std::cout << "mu" << "\n";
     file.getAtt("mu0").getValues(&muEdir);
     sza_dir = angleToVec(muEdir,270);
     //        std::cout << "sza_dir = " << sza_dir.transpose() << "\n";
     Edir.resize(Nx*Ny*Nz*Nwvl);
     Edown.resize(Nx*Ny*Nz*Nwvl);
+    std::cout << "var" << "\n";
     file.getVar("Edir").getVar(Edir.data());
     file.getVar("Edown").getVar(Edown.data());
 
@@ -623,7 +637,7 @@ void print_parameters(std::string radpath, std::string flxpath, std::string oppa
 
 }
 
-void configparser(std::string fname, std::string& radfn, std::string& flxfn, std::string& opfn, std::string& outfn, double& dx, double& dy, double& albedo, \
+void configparser(std::string fname, std::string& radfn, std::string& flxfn, std::string& opfn, std::string& outfn, int& mode, double& dx, double& dy, double& albedo, \
         int& xpixel, int& ypixel, double& fov_phi1, double& fov_phi2, double& fov_theta1, double& fov_theta2, double& xloc, double& yloc, \
         double& zloc, int& nsub){
 
@@ -645,6 +659,7 @@ void configparser(std::string fname, std::string& radfn, std::string& flxfn, std
     yloc = 0;
     zloc = 0;
     nsub = 1;
+    mode = 0;
     //////////////////////////
 
     std::ifstream file(fname);
@@ -678,6 +693,7 @@ void configparser(std::string fname, std::string& radfn, std::string& flxfn, std
             if(name == "yloc"){ yloc = std::stod(value); continue;}
             if(name == "zloc"){ zloc = std::stod(value); continue;}
             if(name == "nsub"){ nsub = std::stoi(value); continue;}
+            if(name == "mode"){ mode = std::stoi(value); continue;}
             else{ std::cerr << "Name " << name << " not recognized\n";}
         }
 

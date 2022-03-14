@@ -19,23 +19,6 @@ int main(int argc, char** argv) {
     for(int zdiv = 0; zdiv <= 0; ++zdiv){
         for(int adiv = 0; adiv <= 0; ++adiv){
 
-            // Filenames for Input
-
-            //std::string radfpath = "rad_zdiv" + std::to_string(zdivs[zdiv])  + "_mu_" + "2"  + "_phi_" + "1" + ".nc";
-            //std::string radfpath = names[in] + "_div" + std::to_string(zdivs[zdiv]) +  ".nc";  //"irr_from32x32_myst_zdiv" + std::to_string(zdivs[zdiv])  + ".nc";
-            //std::string radfpath = "../radiances/rad_testcases/checkerboard_full/rad_checkerboard.nc";
-            std::string radfpath = "/project/meteo-scratch/Mujkanovic.Max/rad_philipp_new/rad_philipp_new.nc";
-
-            //std::string flxfpath = "../radiances/rad_testcases/checkerboard_full/flx_checkerboard.nc";
-            //std::string flxfpath = "flx_levels_div" + std::to_string(zdivs[zdiv]) + ".nc";
-            std::string flxfpath = "/project/meteo-scratch/Mujkanovic.Max/rad_philipp_new/flx_philipp_new.nc";
-
-            //std::string opfpath = "op_levels_div" + std::to_string(zdivs[zdiv]) + ".nc";
-            //std::string opfpath = "../radiances/rad_testcases/checkerboard_full/op_checkerboard.nc";
-            std::string opfpath = "/project/meteo-scratch/Mujkanovic.Max/rad_philipp_new/op_philipp_new_expanded_nobs.nc";
-
-            // Filename for output
-            std::string outputfname = "output2d_philipp_test";
 
             // Grid Parameters 
             double dx;
@@ -59,9 +42,14 @@ int main(int argc, char** argv) {
             int nsub; //50;
             
 
-            //Parsing config file
+            //Parsing config filei
+            int mode;
+            std::string radfpath;
+            std::string flxfpath;
+            std::string opfpath;
+            std::string outputfname;
             std::string configname = "config.txt";
-            configparser(configname, radfpath, flxfpath, opfpath, outputfname, dx, dy, albedo, Nxpixel, Nypixel, fov_phi1, fov_phi2, fov_theta1, fov_theta2, xloc, yloc, zloc, nsub);
+            configparser(configname, radfpath, flxfpath, opfpath, outputfname, mode, dx, dy, albedo, Nxpixel, Nypixel, fov_phi1, fov_phi2, fov_theta1, fov_theta2, xloc, yloc, zloc, nsub);
 
             auto loc = Eigen::Vector3d{xloc,yloc,zloc};     
             double fovx = fov;
@@ -72,7 +60,7 @@ int main(int argc, char** argv) {
             std::cout << "radfpath = " << radfpath << "\n";
             std::cout << "flxfpath = " << flxfpath << "\n";
             std::cout << "opfpath = " << opfpath << "\n\n";
-
+            std::cout << "mode = " << mode << "\n\n";
             //NetCDF declarations
             std::vector<double> radiances;
             std::vector<double> mus;
@@ -90,8 +78,19 @@ int main(int argc, char** argv) {
             double muEdir;
 
             //read NetCDF data
+            std::cout << "Reading radiances.." << "\n";
+            
+            std::cout << "3" << "\n\n";
             read_radiances(radfpath, radiances, mus, phis, wmus, wphis,  nmu, nphi);
+            
+            std::cout << "4" << "\n\n";
+            std::cout << "Reading fluxes.." << "\n";
+            
+            std::cout << "5" << "\n\n";
             read_flx(flxfpath, Edir, Edown, sza_dir, muEdir);
+            
+            std::cout << "Reading opprop.." << "\n";
+            
             read_opprop(opfpath, kext, zlev, w0, g1, nlev, nlyr, nx, ny);
             for(auto& ke: kext) {
                 ke *= 1000;
@@ -134,7 +133,7 @@ int main(int argc, char** argv) {
             std::cout << "Calculating phase functions with " + std::to_string(nsub) + " subdivisions.\n\n";
 
             //main image calculation
-            calc_image(grid, cam, Nxpixel, Nypixel, dx, dy, zlev, kext,  g1, w0, albedo, muEdir, nx, ny, nlyr, nmu, nphi, mus, phis, wmus,  wphis,
+            calc_image(grid, cam, mode, Nxpixel, Nypixel, dx, dy, zlev, kext,  g1, w0, albedo, muEdir, nx, ny, nlyr, nmu, nphi, mus, phis, wmus,  wphis,
                     sza_dir, Edir, radiances, streams, nsub, substreams, image, opthick_image, Ldiff_i, Lup_i, Ldown_i, Ldir_i, groundbox, gRdir_i, gRdiff_i);
 
             //printing calculation parameters 

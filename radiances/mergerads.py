@@ -16,7 +16,7 @@ def mergerads(nmus,m1,m2, nphis, loc, fname="radiances.nc"):
     print("Merging radiances...")
     mus,wmus = a.gen_mus(nmus,m1,m2)
     phis,wphis = a.gen_phis(nphis)
-    Dlist = [xr.open_mfdataset([loc + "/job_mu" + str(int(nmus))  + "/job_{}_{}/mc.rad.spc.nc".format(i,j) for j in phis],concat_dim="phi") for i in mus]
+    Dlist = [xr.open_mfdataset([loc + "/job_mu" + str(int(nmus))  + "/job_{}_{}/mc.rad.spc.nc".format(i,j) for j in phis],combine="nested",concat_dim="phi") for i in mus]
     D = xr.concat(Dlist, dim="mu")
     D["wphi"] = wphis
     D["wmu"] = wmus
@@ -49,7 +49,7 @@ def mergepan(loc_pan, rep, fname):
 def meanE(nmus,m1,m2, nphis, loc,fname="Edir.nc"):
     mus,wmus = a.gen_mus(nmus,m1,m2)
     phis,wphis = a.gen_phis(nphis)
-    E = xr.open_mfdataset([loc + "/job_mu" +str(int(nmus)) + "/job_{}_{}/mc.flx.spc.nc".format(i,j) for i in mus for j in phis],concat_dim="files")
+    E = xr.open_mfdataset([loc + "/job_mu" +str(int(nmus)) + "/job_{}_{}/mc.flx.spc.nc".format(i,j) for i in mus for j in phis],concat_dim="files", combine="nested")
     Em = E.mean(dim = "files")
     print("Mean irradiance from flx files. Info: ")
     print(Em)
